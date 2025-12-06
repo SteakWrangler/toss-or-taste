@@ -22,7 +22,7 @@ interface SubscriptionManagerProps {
 }
 
 const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseComplete }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
   const [refreshing, setRefreshing] = useState(true); // Start with true for initial load
@@ -92,6 +92,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
         if (shouldUseApplePayments()) {
           toast.success('Subscription activated successfully!');
           await checkSubscription(); // Refresh subscription status
+          if (user) {
+            await refreshProfile(user.id); // Refresh profile to update credits display
+          }
           onPurchaseComplete?.();
         }
         // For Stripe, we navigate away so no success message needed here
@@ -148,7 +151,10 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       if (success) {
         if (shouldUseApplePayments()) {
           toast.success(`Successfully purchased ${credits} credits!`);
-          await checkSubscription(); // Refresh to get updated credit count
+          await checkSubscription(); // Refresh to get updated subscription info
+          if (user) {
+            await refreshProfile(user.id); // Refresh profile to update credits display
+          }
           onPurchaseComplete?.();
         }
         // For Stripe, we navigate away so no success message needed here
