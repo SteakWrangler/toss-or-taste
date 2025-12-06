@@ -28,6 +28,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
   const [refreshing, setRefreshing] = useState(true); // Start with true for initial load
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const checkSubscription = useCallback(async () => {
     if (!user) return;
@@ -75,10 +76,15 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       if (shouldUseApplePayments()) {
         const handlePurchaseComplete = async (event: any) => {
           console.log('🍎 🎉 IAP Purchase complete event received!', event.detail);
+          setDebugInfo('Event received! Refreshing...');
+
           // Refresh profile to show updated credits
           console.log('🍎 Calling refreshProfile for user:', user.id);
           await refreshProfile(user.id);
           console.log('🍎 ✅ Profile refreshed after purchase');
+
+          setDebugInfo('Profile refreshed! Credits: ' + (profile?.room_credits || 0));
+          setTimeout(() => setDebugInfo(''), 3000);
         };
 
         // Listen for custom event
@@ -87,6 +93,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
         // Also register callback
         appleIAP.onPurchaseComplete(async (productId: string) => {
           console.log('🍎 Purchase complete callback received for:', productId);
+          setDebugInfo('Callback triggered!');
           await refreshProfile(user.id);
         });
 
@@ -217,6 +224,17 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* Debug Info */}
+      {debugInfo && (
+        <Card className="bg-yellow-50 border-yellow-200">
+          <CardContent className="flex items-center gap-2 py-3">
+            <span className="text-sm text-yellow-700 font-mono">
+              DEBUG: {debugInfo}
+            </span>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Platform Indicator */}
       {shouldUseApplePayments() && (
         <Card className="bg-blue-50 border-blue-200">
