@@ -216,6 +216,7 @@ export class AppleIAPService {
       }
 
       console.log('🍎 All products registered, setting up error handler...');
+      console.log('🍎 🚨 NEW CODE VERSION - ERROR HANDLER ADDED 🚨');
 
       // Set up global error handler BEFORE calling refresh
       window.store.error((error: any) => {
