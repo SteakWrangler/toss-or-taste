@@ -215,9 +215,20 @@ export class AppleIAPService {
         console.error('🍎 Failed to register PREMIUM_ANNUAL:', e);
       }
 
-      console.log('🍎 All products registered, setting up ready callback...');
+      console.log('🍎 All products registered, setting up error handler...');
 
-      // Set up ready callback FIRST
+      // Set up global error handler BEFORE calling refresh
+      window.store.error((error: any) => {
+        console.error('🍎 Store error:', error);
+        if (error.code) {
+          console.error('🍎 Error code:', error.code);
+        }
+        if (error.message) {
+          console.error('🍎 Error message:', error.message);
+        }
+      });
+
+      // Set up ready callback
       window.store.ready(() => {
         console.log('🍎 ✅ Apple IAP store ready!');
 
@@ -252,20 +263,15 @@ export class AppleIAPService {
           loaded: p.loaded,
           valid: p.valid
         })));
+
+        this.isInitialized = true;
+        console.log('🍎 Apple IAP initialization complete (after ready)');
       });
 
       // Now call refresh to trigger product loading
       console.log('🍎 Calling refresh to load products...');
-      try {
-        window.store.refresh();
-        console.log('🍎 Refresh called successfully');
-      } catch (refreshError) {
-        console.error('🍎 Error calling refresh:', refreshError);
-        throw refreshError;
-      }
-
-      this.isInitialized = true;
-      console.log('🍎 Apple IAP initialization complete');
+      window.store.refresh();
+      console.log('🍎 Refresh called (async, waiting for ready callback)');
     } catch (error) {
       console.error('Failed to initialize Apple IAP:', error);
       throw error;
