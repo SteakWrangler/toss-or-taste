@@ -404,21 +404,23 @@ export class AppleIAPService {
   private setupSinglePurchaseHandler(productId: string): void {
     try {
       console.log(`🍎 Setting up single purchase handler for: ${productId}`);
-      
+
       const productHandler = window.store?.when(productId);
       if (productHandler) {
         productHandler
           .initiated((product: any) => {
             console.log('🍎 Purchase initiated:', product);
           })
-          .approved((product: any) => {
+          .approved(async (product: any) => {
             console.log('🍎 Purchase approved:', product);
+            // Update backend immediately when approved (for StoreKit testing)
+            await this.handleVerifiedPurchase(product);
             // Finish the transaction
             product.finish();
           })
           .verified((product: any) => {
             console.log('🍎 Purchase verified:', product);
-            // Update backend based on product type
+            // Also handle in verified for production
             this.handleVerifiedPurchase(product);
           })
           .finished((product: any) => {
