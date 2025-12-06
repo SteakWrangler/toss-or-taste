@@ -220,50 +220,47 @@ export class AppleIAPService {
       // Set up purchase handlers
       this.setupPurchaseHandlers();
 
-      console.log('🍎 Handlers set up, initializing store...');
+      console.log('🍎 Handlers set up, calling refresh...');
 
-      // Set up ready callback BEFORE calling refresh
-      window.store.ready(() => {
-        console.log('🍎 Apple IAP store ready!');
-
-        // Log product info after ready
-        setTimeout(() => {
-          console.log('🍎 Store ready - checking all products...');
-          console.log('🍎 Registered products:', window.store?.registeredProducts);
-
-          Object.values(APPLE_PRODUCT_IDS).forEach(productId => {
-            const product = window.store?.get(productId);
-            console.log(`🍎 Product ${productId}:`, product || 'NOT FOUND');
-            if (product) {
-              console.log(`🍎 Product ${productId} details:`, {
-                id: product.id,
-                title: product.title,
-                description: product.description,
-                price: product.price,
-                currency: product.currency,
-                loaded: product.loaded,
-                valid: product.valid,
-                canPurchase: product.canPurchase
-              });
-            }
-          });
-
-          // Also log all available products
-          const allProducts = window.store?.registeredProducts || [];
-          console.log('🍎 All registered products:', allProducts.map((p: any) => ({
-            id: p.id,
-            loaded: p.loaded,
-            valid: p.valid
-          })));
-        }, 1000);
-      });
-
-      // Refresh to load products from StoreKit
-      console.log('🍎 Calling store.refresh() to load products...');
+      // Call refresh to trigger product loading - this will fire the ready callback
       window.store.refresh();
 
+      // Set up ready callback - fires after refresh completes
+      window.store.ready(() => {
+        console.log('🍎 ✅ Apple IAP store ready!');
+
+        // Log product info immediately
+        console.log('🍎 Store ready - checking all products...');
+        console.log('🍎 Registered products:', window.store?.registeredProducts);
+
+        Object.values(APPLE_PRODUCT_IDS).forEach(productId => {
+          const product = window.store?.get(productId);
+          console.log(`🍎 Product ${productId}:`, product || 'NOT FOUND');
+          if (product) {
+            console.log(`🍎 Product ${productId} details:`, {
+              id: product.id,
+              title: product.title,
+              description: product.description,
+              price: product.price,
+              currency: product.currency,
+              loaded: product.loaded,
+              valid: product.valid,
+              canPurchase: product.canPurchase
+            });
+          }
+        });
+
+        // Also log all available products
+        const allProducts = window.store?.registeredProducts || [];
+        console.log('🍎 All registered products:', allProducts.map((p: any) => ({
+          id: p.id,
+          loaded: p.loaded,
+          valid: p.valid
+        })));
+      });
+
       this.isInitialized = true;
-      console.log('🍎 Apple IAP initialized successfully');
+      console.log('🍎 Apple IAP initialization complete, waiting for ready...');
     } catch (error) {
       console.error('Failed to initialize Apple IAP:', error);
       throw error;
