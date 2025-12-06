@@ -1,0 +1,140 @@
+{
+  "identifier" : "TossOrTaste",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "single_credit_001",
+      "localizations" : [
+        {
+          "description" : "Purchase 1 room credit",
+          "displayName" : "Single Credit",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.linksmarttech.tossortaste.single_credit",
+      "referenceName" : "Single Credit",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "3.99",
+      "familyShareable" : false,
+      "internalID" : "credit_pack_001",
+      "localizations" : [
+        {
+          "description" : "Purchase 5 room credits",
+          "displayName" : "Credit Pack",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.linksmarttech.tossortaste.credit_pack",
+      "referenceName" : "Credit Pack",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "askToBuyEnabled" : false,
+    "locale" : "en_US",
+    "storefront" : "USA",
+    "_applicationInternalID" : "6737390851",
+    "_developerTeamID" : "YOUR_TEAM_ID",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 753148800.0,
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptions" : [
+    {
+      "adHocOffers" : [],
+      "codeOffers" : [],
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "groupNumber" : 1,
+      "internalID" : "premium_monthly_001",
+      "introductoryOffer" : null,
+      "localizations" : [
+        {
+          "description" : "Monthly Premium Subscription",
+          "displayName" : "Premium Monthly",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.linksmarttech.tossortaste.premium_monthly",
+      "recurringSubscriptionPeriod" : "P1M",
+      "referenceName" : "Premium Monthly",
+      "subscriptionGroupID" : "premium_group",
+      "type" : "RecurringSubscription"
+    },
+    {
+      "adHocOffers" : [],
+      "codeOffers" : [],
+      "displayPrice" : "99.99",
+      "familyShareable" : false,
+      "groupNumber" : 1,
+      "internalID" : "premium_annual_001",
+      "introductoryOffer" : null,
+      "localizations" : [
+        {
+          "description" : "Annual Premium Subscription",
+          "displayName" : "Premium Annual",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.linksmarttech.tossortaste.premium_annual",
+      "recurringSubscriptionPeriod" : "P1Y",
+      "referenceName" : "Premium Annual",
+      "subscriptionGroupID" : "premium_group",
+      "type" : "RecurringSubscription"
+    }
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
