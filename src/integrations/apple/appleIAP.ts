@@ -215,16 +215,14 @@ export class AppleIAPService {
         console.error('🍎 Failed to register PREMIUM_ANNUAL:', e);
       }
 
-      console.log('🍎 All products registered, setting up handlers...');
-      
-      // Set up purchase handlers
-      this.setupPurchaseHandlers();
-
-      console.log('🍎 Handlers set up, setting up ready callback...');
+      console.log('🍎 All products registered, setting up ready callback...');
 
       // Set up ready callback FIRST
       window.store.ready(() => {
         console.log('🍎 ✅ Apple IAP store ready!');
+
+        // Set up purchase handlers AFTER products are loaded
+        this.setupPurchaseHandlers();
 
         // Log product info immediately
         console.log('🍎 Store ready - checking all products...');
