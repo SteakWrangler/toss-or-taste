@@ -215,8 +215,8 @@ export class AppleIAPService {
         console.error('🍎 Failed to register PREMIUM_ANNUAL:', e);
       }
 
-      console.log('🍎 All products registered, setting up error handler...');
-      console.log('🍎 🚨 NEW CODE VERSION - ERROR HANDLER ADDED 🚨');
+      console.log('🍎 All products registered, setting up handlers...');
+      console.log('🍎 🚨 V2 - HANDLERS BEFORE REFRESH 🚨');
 
       // Set up global error handler BEFORE calling refresh
       window.store.error((error: any) => {
@@ -228,13 +228,16 @@ export class AppleIAPService {
           console.error('🍎 Error message:', error.message);
         }
       });
+      console.log('🍎 ✓ Global error handler registered');
+
+      // Set up purchase handlers BEFORE calling refresh (handlers don't need products to exist)
+      console.log('🍎 Setting up purchase handlers before refresh...');
+      this.setupPurchaseHandlers();
+      console.log('🍎 ✓ Purchase handlers registered');
 
       // Set up ready callback
       window.store.ready(() => {
         console.log('🍎 ✅ Apple IAP store ready!');
-
-        // Set up purchase handlers AFTER products are loaded
-        this.setupPurchaseHandlers();
 
         // Log product info immediately
         console.log('🍎 Store ready - checking all products...');
@@ -268,11 +271,12 @@ export class AppleIAPService {
         this.isInitialized = true;
         console.log('🍎 Apple IAP initialization complete (after ready)');
       });
+      console.log('🍎 ✓ Ready callback registered');
 
       // Now call refresh to trigger product loading
       console.log('🍎 Calling refresh to load products...');
       window.store.refresh();
-      console.log('🍎 Refresh called (async, waiting for ready callback)');
+      console.log('🍎 ✓ Refresh called (async, waiting for ready callback)');
     } catch (error) {
       console.error('Failed to initialize Apple IAP:', error);
       throw error;
