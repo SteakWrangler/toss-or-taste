@@ -23,7 +23,7 @@ interface SubscriptionManagerProps {
 }
 
 const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseComplete }) => {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, setProfile } = useAuth();
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null);
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
   const [refreshing, setRefreshing] = useState(true); // Start with true for initial load
@@ -172,16 +172,25 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
     const buttonKey = `credits-${credits}`;
     setLoadingStates(prev => ({ ...prev, [buttonKey]: true }));
-    
+
     try {
       console.log(`Using payment service for credits: ${credits}`);
       const creditAmount = credits as 1 | 5;
       const success = await paymentService.purchaseCredits(creditAmount, priceId);
-      
+
       if (success) {
         if (shouldUseApplePayments()) {
+          // Optimistically update the profile credits in the UI
+          if (profile) {
+            const currentCredits = profile.room_credits || 0;
+            const newCredits = currentCredits + credits;
+            setProfile({
+              ...profile,
+              room_credits: newCredits
+            });
+          }
+
           toast.success(`Successfully purchased ${credits} credits!`);
-          // Profile will be refreshed automatically via purchase complete callback
           onPurchaseComplete?.();
         }
         // For Stripe, we navigate away so no success message needed here
