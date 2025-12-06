@@ -181,13 +181,23 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       if (success) {
         if (shouldUseApplePayments()) {
           // Optimistically update the profile credits in the UI
+          console.log('💳 Purchase successful, updating UI optimistically');
+          console.log('💳 Current profile:', profile);
+          console.log('💳 Credits to add:', credits);
+
           if (profile) {
             const currentCredits = profile.room_credits || 0;
             const newCredits = currentCredits + credits;
+            console.log('💳 Updating credits:', currentCredits, '→', newCredits);
+
             setProfile({
               ...profile,
               room_credits: newCredits
             });
+
+            console.log('💳 Profile update called');
+          } else {
+            console.log('💳 No profile available to update');
           }
 
           toast.success(`Successfully purchased ${credits} credits!`);
