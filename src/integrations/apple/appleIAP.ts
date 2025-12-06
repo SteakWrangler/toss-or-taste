@@ -256,7 +256,13 @@ export class AppleIAPService {
 
       // Now call refresh to trigger product loading
       console.log('🍎 Calling refresh to load products...');
-      window.store.refresh();
+      try {
+        window.store.refresh();
+        console.log('🍎 Refresh called successfully');
+      } catch (refreshError) {
+        console.error('🍎 Error calling refresh:', refreshError);
+        throw refreshError;
+      }
 
       this.isInitialized = true;
       console.log('🍎 Apple IAP initialization complete');
