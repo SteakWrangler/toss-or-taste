@@ -220,12 +220,9 @@ export class AppleIAPService {
       // Set up purchase handlers
       this.setupPurchaseHandlers();
 
-      console.log('🍎 Handlers set up, calling refresh...');
+      console.log('🍎 Handlers set up, setting up ready callback...');
 
-      // Call refresh to trigger product loading - this will fire the ready callback
-      window.store.refresh();
-
-      // Set up ready callback - fires after refresh completes
+      // Set up ready callback FIRST
       window.store.ready(() => {
         console.log('🍎 ✅ Apple IAP store ready!');
 
@@ -259,8 +256,12 @@ export class AppleIAPService {
         })));
       });
 
+      // Now call refresh to trigger product loading
+      console.log('🍎 Calling refresh to load products...');
+      window.store.refresh();
+
       this.isInitialized = true;
-      console.log('🍎 Apple IAP initialization complete, waiting for ready...');
+      console.log('🍎 Apple IAP initialization complete');
     } catch (error) {
       console.error('Failed to initialize Apple IAP:', error);
       throw error;
