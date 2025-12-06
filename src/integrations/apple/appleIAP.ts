@@ -51,6 +51,14 @@ export class AppleIAPService {
   }
 
   private notifyPurchaseComplete(productId: string): void {
+    console.log('🍎 notifyPurchaseComplete called with productId:', productId);
+    console.log('🍎 Number of callbacks registered:', this.purchaseCompleteCallbacks.length);
+
+    // Dispatch custom event that components can listen to
+    window.dispatchEvent(new CustomEvent('iap-purchase-complete', {
+      detail: { productId }
+    }));
+
     this.purchaseCompleteCallbacks.forEach(callback => {
       try {
         callback(productId);

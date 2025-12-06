@@ -73,14 +73,27 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
       // Set up listener for Apple IAP purchase completion
       if (shouldUseApplePayments()) {
-        const handlePurchaseComplete = async (productId: string) => {
-          console.log('🍎 Purchase complete callback received for:', productId);
+        const handlePurchaseComplete = async (event: any) => {
+          console.log('🍎 🎉 IAP Purchase complete event received!', event.detail);
           // Refresh profile to show updated credits
+          console.log('🍎 Calling refreshProfile for user:', user.id);
           await refreshProfile(user.id);
-          console.log('🍎 Profile refreshed after purchase');
+          console.log('🍎 ✅ Profile refreshed after purchase');
         };
 
-        appleIAP.onPurchaseComplete(handlePurchaseComplete);
+        // Listen for custom event
+        window.addEventListener('iap-purchase-complete', handlePurchaseComplete);
+
+        // Also register callback
+        appleIAP.onPurchaseComplete(async (productId: string) => {
+          console.log('🍎 Purchase complete callback received for:', productId);
+          await refreshProfile(user.id);
+        });
+
+        // Cleanup
+        return () => {
+          window.removeEventListener('iap-purchase-complete', handlePurchaseComplete);
+        };
       }
     }
   }, [user, checkSubscription, refreshProfile]);
