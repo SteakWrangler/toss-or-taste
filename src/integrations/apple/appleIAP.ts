@@ -221,17 +221,16 @@ export class AppleIAPService {
       this.setupPurchaseHandlers();
 
       console.log('🍎 Handlers set up, initializing store...');
-      
-      // Initialize the store and load product info
+
+      // Set up ready callback BEFORE calling refresh
       window.store.ready(() => {
-        console.log('🍎 Apple IAP store ready, refreshing products...');
-        window.store?.refresh();
-        
-        // Log product info after refresh
+        console.log('🍎 Apple IAP store ready!');
+
+        // Log product info after ready
         setTimeout(() => {
           console.log('🍎 Store ready - checking all products...');
           console.log('🍎 Registered products:', window.store?.registeredProducts);
-          
+
           Object.values(APPLE_PRODUCT_IDS).forEach(productId => {
             const product = window.store?.get(productId);
             console.log(`🍎 Product ${productId}:`, product || 'NOT FOUND');
@@ -248,7 +247,7 @@ export class AppleIAPService {
               });
             }
           });
-          
+
           // Also log all available products
           const allProducts = window.store?.registeredProducts || [];
           console.log('🍎 All registered products:', allProducts.map((p: any) => ({
@@ -256,8 +255,12 @@ export class AppleIAPService {
             loaded: p.loaded,
             valid: p.valid
           })));
-        }, 2000);
+        }, 1000);
       });
+
+      // Refresh to load products from StoreKit
+      console.log('🍎 Calling store.refresh() to load products...');
+      window.store.refresh();
 
       this.isInitialized = true;
       console.log('🍎 Apple IAP initialized successfully');
