@@ -321,38 +321,32 @@ export class AppleIAPService {
 
     try {
       const productId = creditAmount === 1 ? APPLE_PRODUCT_IDS.SINGLE_CREDIT : APPLE_PRODUCT_IDS.CREDIT_PACK;
-      
+
       console.log('🍎 Initiating credit purchase:', productId);
       const product = window.store.get(productId);
       console.log('🍎 Product info before purchase:', product);
-      
-      // TEMPORARY: Mock successful purchase for testing while App Store Connect products are being set up
+
       if (!product || !product.loaded || !product.valid) {
-        console.log('🍎 Product not loaded from App Store - using MOCK PURCHASE for testing');
-        console.log('🍎 ⚠️  This is a TEST ONLY - no actual payment is processed!');
-        console.log('🍎 Product details:', { loaded: product?.loaded, valid: product?.valid, canPurchase: product?.canPurchase });
-        
-        // Simulate a successful purchase after 1 second
-        setTimeout(async () => {
-          console.log('🍎 MOCK: Purchase approved');
-          console.log('🍎 MOCK: Purchase verified');
-          try {
-            await this.updateBackendCredits(creditAmount);
-            console.log('🍎 MOCK: Credits successfully added to account');
-          } catch (error) {
-            console.error('🍎 MOCK: Failed to add credits:', error);
-          }
-        }, 1000);
-        
-        return true;
+        console.error('🍎 Product not loaded from App Store:', {
+          exists: !!product,
+          loaded: product?.loaded,
+          valid: product?.valid,
+          canPurchase: product?.canPurchase
+        });
+        throw new Error('Product not available for purchase');
       }
-      
+
+      if (!product.canPurchase) {
+        console.error('🍎 Product cannot be purchased:', product);
+        throw new Error('Product cannot be purchased at this time');
+      }
+
       // Set up one-time listeners for this specific purchase
       this.setupSinglePurchaseHandler(productId);
-      
+
       const result = window.store.order(productId);
       console.log('🍎 Purchase order result:', result);
-      
+
       // Return true immediately - actual success is handled in the verified callback
       return true;
     } catch (error) {
