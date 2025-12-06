@@ -9,6 +9,7 @@ import { Crown, CreditCard, Loader2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
 import { shouldUseApplePayments, shouldUseStripe, getPlatformName } from '@/utils/platformUtils';
 import { paymentService } from '@/services/paymentService';
+import { appleIAP } from '@/integrations/apple/appleIAP';
 
 interface SubscriptionInfo {
   subscribed: boolean;
@@ -60,17 +61,29 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
     if (user) {
       checkSubscription();
       // Initialize Apple IAP if on iOS
-      console.log('🍎 Platform check in useEffect:', { 
+      console.log('🍎 Platform check in useEffect:', {
         shouldUseApplePayments: shouldUseApplePayments(),
         platform: getPlatformName()
       });
-      
+
       // Initialize payment service
       paymentService.initializePayments(user.id).catch((error) => {
         console.error('Payment service initialization failed:', error);
       });
+
+      // Set up listener for Apple IAP purchase completion
+      if (shouldUseApplePayments()) {
+        const handlePurchaseComplete = async (productId: string) => {
+          console.log('🍎 Purchase complete callback received for:', productId);
+          // Refresh profile to show updated credits
+          await refreshProfile(user.id);
+          console.log('🍎 Profile refreshed after purchase');
+        };
+
+        appleIAP.onPurchaseComplete(handlePurchaseComplete);
+      }
     }
-  }, [user, checkSubscription]);
+  }, [user, checkSubscription, refreshProfile]);
 
   const handleSubscribe = async (priceId: string, type: string) => {
     if (!user) {
@@ -91,10 +104,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       if (success) {
         if (shouldUseApplePayments()) {
           toast.success('Subscription activated successfully!');
-          await checkSubscription(); // Refresh subscription status
-          if (user) {
-            await refreshProfile(user.id); // Refresh profile to update credits display
-          }
+          // Profile will be refreshed automatically via purchase complete callback
           onPurchaseComplete?.();
         }
         // For Stripe, we navigate away so no success message needed here
@@ -151,10 +161,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       if (success) {
         if (shouldUseApplePayments()) {
           toast.success(`Successfully purchased ${credits} credits!`);
-          await checkSubscription(); // Refresh to get updated subscription info
-          if (user) {
-            await refreshProfile(user.id); // Refresh profile to update credits display
-          }
+          // Profile will be refreshed automatically via purchase complete callback
           onPurchaseComplete?.();
         }
         // For Stripe, we navigate away so no success message needed here

@@ -37,12 +37,27 @@ export const APPLE_PRODUCT_IDS = {
 export class AppleIAPService {
   private static instance: AppleIAPService;
   private isInitialized = false;
+  private purchaseCompleteCallbacks: Array<(productId: string) => void> = [];
 
   static getInstance(): AppleIAPService {
     if (!AppleIAPService.instance) {
       AppleIAPService.instance = new AppleIAPService();
     }
     return AppleIAPService.instance;
+  }
+
+  onPurchaseComplete(callback: (productId: string) => void): void {
+    this.purchaseCompleteCallbacks.push(callback);
+  }
+
+  private notifyPurchaseComplete(productId: string): void {
+    this.purchaseCompleteCallbacks.forEach(callback => {
+      try {
+        callback(productId);
+      } catch (error) {
+        console.error('Error in purchase complete callback:', error);
+      }
+    });
   }
 
   private waitForCdvPurchase(): Promise<void> {
@@ -296,6 +311,10 @@ export class AppleIAPService {
       } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_ANNUAL) {
         await this.updateBackendSubscription('annual');
       }
+
+      // Notify listeners that purchase is complete and backend is updated
+      console.log('🍎 Purchase verified and backend updated, notifying listeners');
+      this.notifyPurchaseComplete(productId);
     } catch (error) {
       console.error('Failed to update backend after purchase:', error);
     }
