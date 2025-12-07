@@ -309,7 +309,7 @@ export class AppleIAPService {
           console.log(`🍎 [HANDLER SETUP] productHandler returned:`, !!productHandler, typeof productHandler);
 
           if (productHandler) {
-            console.log(`🍎 [HANDLER SETUP] Setting up .approved() handler...`);
+            console.log(`🍎 [HANDLER SETUP] Setting up .approved() and .verified() handlers...`);
             productHandler
               .approved((product: any) => {
                 console.log('🍎 Purchase approved:', product);
@@ -320,10 +320,8 @@ export class AppleIAPService {
                 console.log('🍎 Purchase verified:', product);
                 // Update backend based on product type
                 this.handleVerifiedPurchase(product);
-              })
-              .error((error: any) => {
-                console.error('🍎 Purchase error:', error);
               });
+            // Note: .error() is NOT chainable - errors are handled by global error handler
             console.log(`🍎 [HANDLER SETUP] ✓ Event handlers set for product: ${productId}`);
           } else {
             console.warn(`🍎 [HANDLER SETUP] ⚠️ window.store.when() returned null/undefined for: ${productId}`);
@@ -468,10 +466,8 @@ export class AppleIAPService {
           })
           .finished((product: any) => {
             console.log('🍎 Purchase finished:', product);
-          })
-          .error((error: any) => {
-            console.error('🍎 Purchase error:', error);
           });
+        // Note: .error() is NOT chainable - errors are handled by global error handler
         console.log(`🍎 Single purchase handlers set for: ${productId}`);
       } else {
         console.error(`🍎 Failed to set single purchase handler for: ${productId}`);
