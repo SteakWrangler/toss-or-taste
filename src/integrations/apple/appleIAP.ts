@@ -415,20 +415,21 @@ export class AppleIAPService {
       const product = window.store.get(productId);
       console.log('🍎 Product info before purchase:', product);
 
-      if (!product || !product.loaded || !product.valid) {
-        console.error('🍎 Product not loaded from App Store:', {
-          exists: !!product,
-          loaded: product?.loaded,
-          valid: product?.valid,
-          canPurchase: product?.canPurchase
-        });
-        throw new Error('Product not available for purchase');
+      if (!product) {
+        console.error('🍎 Product not found in store');
+        throw new Error('Product not found');
       }
 
       if (!product.canPurchase) {
-        console.error('🍎 Product cannot be purchased:', product);
+        console.error('🍎 Product cannot be purchased:', {
+          id: product.id,
+          canPurchase: product.canPurchase,
+          type: product.type
+        });
         throw new Error('Product cannot be purchased at this time');
       }
+
+      console.log('🍎 ✓ Product is valid and ready for purchase');
 
       // Set up one-time listeners for this specific purchase
       this.setupSinglePurchaseHandler(productId);
