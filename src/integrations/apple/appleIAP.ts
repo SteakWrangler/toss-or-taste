@@ -284,16 +284,32 @@ export class AppleIAPService {
   }
 
   private setupPurchaseHandlers(): void {
-    if (!window.store) return;
+    console.log('🍎 [HANDLER SETUP] Starting setupPurchaseHandlers...');
+    console.log('🍎 [HANDLER SETUP] window.store exists?', !!window.store);
+
+    if (!window.store) {
+      console.error('🍎 [HANDLER SETUP] window.store is null/undefined, returning early');
+      return;
+    }
+
+    console.log('🍎 [HANDLER SETUP] window.store.when exists?', !!window.store.when);
+    console.log('🍎 [HANDLER SETUP] typeof window.store.when:', typeof window.store.when);
 
     try {
-      console.log('🍎 Setting up purchase event handlers...');
-      
+      console.log('🍎 [HANDLER SETUP] Setting up purchase event handlers...');
+      console.log('🍎 [HANDLER SETUP] Product IDs to register:', Object.values(APPLE_PRODUCT_IDS));
+
       // Handle all products with the new event system
-      Object.values(APPLE_PRODUCT_IDS).forEach(productId => {
+      Object.values(APPLE_PRODUCT_IDS).forEach((productId, index) => {
+        console.log(`🍎 [HANDLER SETUP] Processing product ${index + 1}/4: ${productId}`);
+
         try {
+          console.log(`🍎 [HANDLER SETUP] Calling window.store.when('${productId}')...`);
           const productHandler = window.store?.when(productId);
+          console.log(`🍎 [HANDLER SETUP] productHandler returned:`, !!productHandler, typeof productHandler);
+
           if (productHandler) {
+            console.log(`🍎 [HANDLER SETUP] Setting up .approved() handler...`);
             productHandler
               .approved((product: any) => {
                 console.log('🍎 Purchase approved:', product);
@@ -308,18 +324,29 @@ export class AppleIAPService {
               .error((error: any) => {
                 console.error('🍎 Purchase error:', error);
               });
-            console.log(`🍎 Event handlers set for product: ${productId}`);
+            console.log(`🍎 [HANDLER SETUP] ✓ Event handlers set for product: ${productId}`);
           } else {
-            console.log(`🍎 Failed to set handlers for product: ${productId}`);
+            console.warn(`🍎 [HANDLER SETUP] ⚠️ window.store.when() returned null/undefined for: ${productId}`);
           }
         } catch (productError) {
-          console.error(`🍎 Error setting up handlers for ${productId}:`, productError);
+          console.error(`🍎 [HANDLER SETUP] ❌ Exception while setting up handlers for ${productId}:`, productError);
+          console.error(`🍎 [HANDLER SETUP] Error type:`, typeof productError);
+          console.error(`🍎 [HANDLER SETUP] Error message:`, productError?.message);
+          console.error(`🍎 [HANDLER SETUP] Error stack:`, productError?.stack);
+          // Don't throw - continue with other products
         }
       });
+
+      console.log('🍎 [HANDLER SETUP] ✓ Completed setting up all product handlers');
     } catch (error) {
-      console.error('🍎 Error in setupPurchaseHandlers:', error);
-      throw error;
+      console.error('🍎 [HANDLER SETUP] ❌ Outer exception in setupPurchaseHandlers:', error);
+      console.error('🍎 [HANDLER SETUP] Error type:', typeof error);
+      console.error('🍎 [HANDLER SETUP] Error message:', error?.message);
+      console.error('🍎 [HANDLER SETUP] Error stack:', error?.stack);
+      // Don't throw - let initialization continue
     }
+
+    console.log('🍎 [HANDLER SETUP] setupPurchaseHandlers completed');
   }
 
   private async handleVerifiedPurchase(product: any): Promise<void> {
