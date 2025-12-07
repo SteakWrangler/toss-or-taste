@@ -28,7 +28,6 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
   const [loadingStates, setLoadingStates] = useState<{[key: string]: boolean}>({});
   const [refreshing, setRefreshing] = useState(true); // Start with true for initial load
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const checkSubscription = useCallback(async () => {
     if (!user) return;
@@ -201,29 +200,6 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      {/* Debug Info */}
-      {debugInfo && (
-        <Card className="bg-yellow-50 border-yellow-200">
-          <CardContent className="flex items-center gap-2 py-3">
-            <span className="text-sm text-yellow-700 font-mono">
-              DEBUG: {debugInfo}
-            </span>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Platform Indicator */}
-      {shouldUseApplePayments() && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="flex items-center gap-2 py-3">
-            <Smartphone className="h-4 w-4 text-blue-600" />
-            <span className="text-sm text-blue-700">
-              Using Native Apple In-App Purchases - Payments processed securely through Apple
-            </span>
-          </CardContent>
-        </Card>
-      )}
-      
       {/* Subscription Status */}
       <Card className="border-primary">
         <CardHeader>
