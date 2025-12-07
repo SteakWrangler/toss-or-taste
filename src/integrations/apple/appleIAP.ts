@@ -261,12 +261,17 @@ export class AppleIAPService {
         });
 
         // Also log all available products
-        const allProducts = window.store?.registeredProducts || [];
-        console.log('🍎 All registered products:', allProducts.map((p: any) => ({
-          id: p.id,
-          loaded: p.loaded,
-          valid: p.valid
-        })));
+        const registeredProducts = window.store?.registeredProducts;
+        console.log('🍎 All registered products:', registeredProducts);
+
+        // registeredProducts is an object with a 'list' property, not an array
+        if (registeredProducts?.list && Array.isArray(registeredProducts.list)) {
+          console.log('🍎 Product summary:', registeredProducts.list.map((p: any) => ({
+            id: p.id,
+            type: p.type,
+            platform: p.platform
+          })));
+        }
 
         this.isInitialized = true;
         console.log('🍎 Apple IAP initialization complete (after ready)');
