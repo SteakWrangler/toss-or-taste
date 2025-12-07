@@ -275,7 +275,22 @@ export class AppleIAPService {
 
       // Now call refresh to trigger product loading
       console.log('🍎 Calling refresh to load products...');
-      window.store.refresh();
+      try {
+        console.log('🍎 [REFRESH] About to call window.store.refresh()...');
+        console.log('🍎 [REFRESH] typeof window.store.refresh:', typeof window.store.refresh);
+        console.log('🍎 [REFRESH] window.store.refresh exists?', !!window.store.refresh);
+
+        const refreshResult = window.store.refresh();
+
+        console.log('🍎 [REFRESH] ✓ refresh() called successfully');
+        console.log('🍎 [REFRESH] refresh() returned:', refreshResult);
+      } catch (refreshError) {
+        console.error('🍎 [REFRESH] ❌ Exception calling refresh():', refreshError);
+        console.error('🍎 [REFRESH] Error type:', typeof refreshError);
+        console.error('🍎 [REFRESH] Error message:', refreshError?.message);
+        console.error('🍎 [REFRESH] Error stack:', refreshError?.stack);
+        throw refreshError; // Re-throw to be caught by outer try-catch
+      }
       console.log('🍎 ✓ Refresh called (async, waiting for ready callback)');
     } catch (error) {
       console.error('Failed to initialize Apple IAP:', error);
