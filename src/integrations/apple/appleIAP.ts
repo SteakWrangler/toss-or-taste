@@ -273,25 +273,26 @@ export class AppleIAPService {
       });
       console.log('🍎 ✓ Ready callback registered');
 
-      // Now call refresh to trigger product loading
-      console.log('🍎 Calling refresh to load products...');
+      // Now call initialize() to trigger product loading
+      // Note: Modern cordova-plugin-purchase uses initialize() instead of refresh()
+      console.log('🍎 Calling initialize to load products...');
       try {
-        console.log('🍎 [REFRESH] About to call window.store.refresh()...');
-        console.log('🍎 [REFRESH] typeof window.store.refresh:', typeof window.store.refresh);
-        console.log('🍎 [REFRESH] window.store.refresh exists?', !!window.store.refresh);
+        console.log('🍎 [INIT] About to call window.store.initialize()...');
+        console.log('🍎 [INIT] typeof window.store.initialize:', typeof window.store.initialize);
+        console.log('🍎 [INIT] window.store.initialize exists?', !!window.store.initialize);
 
-        const refreshResult = window.store.refresh();
+        const initResult = window.store.initialize();
 
-        console.log('🍎 [REFRESH] ✓ refresh() called successfully');
-        console.log('🍎 [REFRESH] refresh() returned:', refreshResult);
-      } catch (refreshError) {
-        console.error('🍎 [REFRESH] ❌ Exception calling refresh():', refreshError);
-        console.error('🍎 [REFRESH] Error type:', typeof refreshError);
-        console.error('🍎 [REFRESH] Error message:', refreshError?.message);
-        console.error('🍎 [REFRESH] Error stack:', refreshError?.stack);
-        throw refreshError; // Re-throw to be caught by outer try-catch
+        console.log('🍎 [INIT] ✓ initialize() called successfully');
+        console.log('🍎 [INIT] initialize() returned:', initResult);
+      } catch (initError) {
+        console.error('🍎 [INIT] ❌ Exception calling initialize():', initError);
+        console.error('🍎 [INIT] Error type:', typeof initError);
+        console.error('🍎 [INIT] Error message:', initError?.message);
+        console.error('🍎 [INIT] Error stack:', initError?.stack);
+        throw initError; // Re-throw to be caught by outer try-catch
       }
-      console.log('🍎 ✓ Refresh called (async, waiting for ready callback)');
+      console.log('🍎 ✓ Initialize called (async, waiting for ready callback)');
     } catch (error) {
       console.error('Failed to initialize Apple IAP:', error);
       throw error;
