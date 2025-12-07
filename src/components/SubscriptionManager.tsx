@@ -33,25 +33,20 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
   const checkSubscription = useCallback(async () => {
     if (!user) return;
 
-    console.log('🔍 Starting subscription check for user:', user.id);
     setRefreshing(true);
     try {
-      console.log('🔍 Calling check-subscription edge function...');
       const { data, error } = await supabase.functions.invoke('check-subscription');
-      console.log('🔍 Subscription check response:', { data, error });
-      
+
       if (error) {
-        console.error('❌ Error checking subscription:', error);
+        console.error('Error checking subscription:', error);
         toast.error('Failed to check subscription status');
       } else {
-        console.log('✅ Subscription info loaded:', data);
         setSubscriptionInfo(data);
       }
     } catch (error) {
-      console.error('❌ Exception during subscription check:', error);
+      console.error('Exception during subscription check:', error);
       toast.error('Failed to check subscription status');
     } finally {
-      console.log('🔍 Subscription check complete, setting refreshing to false');
       setRefreshing(false);
       setInitialLoadComplete(true);
     }
@@ -61,43 +56,22 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
   useEffect(() => {
     if (user) {
       checkSubscription();
-      // Initialize Apple IAP if on iOS
-      console.log('🍎 Platform check in useEffect:', {
-        shouldUseApplePayments: shouldUseApplePayments(),
-        platform: getPlatformName()
-      });
 
-      // Initialize payment service
       paymentService.initializePayments(user.id).catch((error) => {
         console.error('Payment service initialization failed:', error);
       });
 
-      // Set up listener for Apple IAP purchase completion
       if (shouldUseApplePayments()) {
         const handlePurchaseComplete = async (event: any) => {
-          console.log('🍎 🎉 IAP Purchase complete event received!', event.detail);
-          setDebugInfo('Event received! Refreshing...');
-
-          // Refresh profile to show updated credits
-          console.log('🍎 Calling refreshProfile for user:', user.id);
           await refreshProfile(user.id);
-          console.log('🍎 ✅ Profile refreshed after purchase');
-
-          setDebugInfo('Profile refreshed! Credits: ' + (profile?.room_credits || 0));
-          setTimeout(() => setDebugInfo(''), 3000);
         };
 
-        // Listen for custom event
         window.addEventListener('iap-purchase-complete', handlePurchaseComplete);
 
-        // Also register callback
         appleIAP.onPurchaseComplete(async (productId: string) => {
-          console.log('🍎 Purchase complete callback received for:', productId);
-          setDebugInfo('Callback triggered!');
           await refreshProfile(user.id);
         });
 
-        // Cleanup
         return () => {
           window.removeEventListener('iap-purchase-complete', handlePurchaseComplete);
         };
@@ -113,30 +87,26 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
     const buttonKey = `subscribe-${type}`;
     setLoadingStates(prev => ({ ...prev, [buttonKey]: true }));
-    
+
     try {
-      console.log(`Using payment service for subscription: ${type}`);
       const success = await paymentService.purchaseSubscription(
-        type === 'monthly' ? 'monthly' : 'yearly', 
+        type === 'monthly' ? 'monthly' : 'yearly',
         priceId
       );
-      
+
       if (success) {
         if (shouldUseApplePayments()) {
           toast.success('Subscription activated successfully!');
-          // Profile will be refreshed automatically via purchase complete callback
           onPurchaseComplete?.();
         }
-        // For Stripe, we navigate away so no success message needed here
       } else {
         toast.error('Failed to complete subscription purchase');
       }
     } catch (error) {
-      console.error('❌ Exception during subscription:', error);
+      console.error('Exception during subscription:', error);
       toast.error('Failed to start subscription');
     } finally {
       if (shouldUseApplePayments()) {
-        // Only reset loading state for Apple payments (Stripe navigates away)
         setLoadingStates(prev => ({ ...prev, [buttonKey]: false }));
       }
     }
@@ -174,45 +144,33 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
     setLoadingStates(prev => ({ ...prev, [buttonKey]: true }));
 
     try {
-      console.log(`Using payment service for credits: ${credits}`);
       const creditAmount = credits as 1 | 5;
       const success = await paymentService.purchaseCredits(creditAmount, priceId);
 
       if (success) {
         if (shouldUseApplePayments()) {
           // Optimistically update the profile credits in the UI
-          console.log('💳 Purchase successful, updating UI optimistically');
-          console.log('💳 Current profile:', profile);
-          console.log('💳 Credits to add:', credits);
-
           if (profile) {
             const currentCredits = profile.room_credits || 0;
             const newCredits = currentCredits + credits;
-            console.log('💳 Updating credits:', currentCredits, '→', newCredits);
 
             setProfile({
               ...profile,
               room_credits: newCredits
             });
-
-            console.log('💳 Profile update called');
-          } else {
-            console.log('💳 No profile available to update');
           }
 
           toast.success(`Successfully purchased ${credits} credits!`);
           onPurchaseComplete?.();
         }
-        // For Stripe, we navigate away so no success message needed here
       } else {
         toast.error('Failed to complete credit purchase');
       }
     } catch (error) {
-      console.error('❌ Exception during credits purchase:', error);
+      console.error('Exception during credits purchase:', error);
       toast.error('Failed to purchase credits');
     } finally {
       if (shouldUseApplePayments()) {
-        // Only reset loading state for Apple payments (Stripe navigates away)
         setLoadingStates(prev => ({ ...prev, [buttonKey]: false }));
       }
     }
