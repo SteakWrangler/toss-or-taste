@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Crown, CreditCard, Loader2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 import { shouldUseApplePayments, shouldUseStripe, getPlatformName } from '@/utils/platformUtils';
 import { paymentService } from '@/services/paymentService';
 import { appleIAP } from '@/integrations/apple/appleIAP';
@@ -301,6 +302,24 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Legal Information for Subscriptions */}
+      {!isSubscribed && (
+        <Card className="bg-gray-50">
+          <CardContent className="pt-6">
+            <p className="text-xs text-gray-600 text-center space-y-1">
+              <span className="block">Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.</span>
+              <span className="block">You can manage or cancel your subscription in your device settings.</span>
+              <span className="block mt-2">
+                By subscribing, you agree to our{' '}
+                <Link to="/terms" className="text-primary underline">Terms of Service</Link>
+                {' '}and{' '}
+                <Link to="/privacy" className="text-primary underline">Privacy Policy</Link>.
+              </span>
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Credit Purchase */}

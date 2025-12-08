@@ -203,13 +203,13 @@ export class AppleIAPService {
 
     try {
       if (productId === APPLE_PRODUCT_IDS.SINGLE_CREDIT) {
-        await this.updateBackendCredits(1);
+        await this.updateBackendCredits(1, product);
       } else if (productId === APPLE_PRODUCT_IDS.CREDIT_PACK) {
-        await this.updateBackendCredits(5);
+        await this.updateBackendCredits(5, product);
       } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_MONTHLY) {
-        await this.updateBackendSubscription('monthly');
+        await this.updateBackendSubscription('monthly', product);
       } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_ANNUAL) {
-        await this.updateBackendSubscription('annual');
+        await this.updateBackendSubscription('annual', product);
       }
 
       this.notifyPurchaseComplete(productId);
@@ -282,71 +282,111 @@ export class AppleIAPService {
     return window.store.get(productId);
   }
 
-  private async updateBackendCredits(creditAmount: number): Promise<void> {
+  private async updateBackendCredits(creditAmount: number, product?: any): Promise<void> {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('User not authenticated');
       }
 
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('room_credits')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        throw new Error(`Failed to get user profile: ${profileError.message}`);
+      // Extract receipt data from the product object
+      if (!product || !product.transaction) {
+        console.error('No product or transaction data available');
+        throw new Error('Missing transaction data for receipt validation');
       }
 
-      const currentCredits = profile?.room_credits || 0;
-      const newCredits = currentCredits + creditAmount;
+      const transactionId = product.transaction.transactionIdentifier || product.transaction.id;
+      const receiptData = product.transaction.appStoreReceipt || product.transaction.receipt;
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          room_credits: newCredits,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-
-      if (updateError) {
-        throw new Error(`Failed to update credits: ${updateError.message}`);
+      if (!receiptData || !transactionId) {
+        console.error('Missing receipt or transaction ID', { product });
+        throw new Error('Missing receipt data for validation');
       }
+
+      // Determine product ID
+      const productId = creditAmount === 1
+        ? APPLE_PRODUCT_IDS.SINGLE_CREDIT
+        : APPLE_PRODUCT_IDS.CREDIT_PACK;
+
+      console.log('Validating credit purchase with backend', {
+        productId,
+        transactionId,
+        hasReceipt: !!receiptData
+      });
+
+      // Call the validation edge function
+      const { data, error } = await supabase.functions.invoke('apple-iap-process-credits', {
+        body: {
+          receiptData,
+          productId,
+          transactionId
+        }
+      });
+
+      if (error) {
+        console.error('Receipt validation failed:', error);
+        throw new Error(`Receipt validation failed: ${error.message}`);
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to validate purchase');
+      }
+
+      console.log('Credits purchase validated successfully', data);
     } catch (error) {
       console.error('Error updating backend credits:', error);
       throw error;
     }
   }
 
-  private async updateBackendSubscription(type: 'monthly' | 'annual'): Promise<void> {
+  private async updateBackendSubscription(type: 'monthly' | 'annual', product?: any): Promise<void> {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('User not authenticated');
       }
 
-      const now = new Date();
-      const expiryDate = new Date(now);
-      if (type === 'monthly') {
-        expiryDate.setMonth(expiryDate.getMonth() + 1);
-      } else {
-        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+      if (!product || !product.transaction) {
+        console.error('No product or transaction data available');
+        throw new Error('Missing transaction data for receipt validation');
       }
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          subscription_type: type,
-          subscription_status: 'active',
-          subscription_expires_at: expiryDate.toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+      const transactionId = product.transaction.transactionIdentifier || product.transaction.id;
+      const receiptData = product.transaction.appStoreReceipt || product.transaction.receipt;
 
-      if (updateError) {
-        throw new Error(`Failed to update subscription: ${updateError.message}`);
+      if (!receiptData || !transactionId) {
+        console.error('Missing receipt or transaction ID', { product });
+        throw new Error('Missing receipt data for validation');
       }
+
+      const productId = type === 'monthly'
+        ? APPLE_PRODUCT_IDS.PREMIUM_MONTHLY
+        : APPLE_PRODUCT_IDS.PREMIUM_ANNUAL;
+
+      console.log('Validating subscription purchase with backend', {
+        productId,
+        transactionId,
+        hasReceipt: !!receiptData
+      });
+
+      const { data, error } = await supabase.functions.invoke('apple-iap-process-subscription', {
+        body: {
+          receiptData,
+          productId,
+          transactionId
+        }
+      });
+
+      if (error) {
+        console.error('Receipt validation failed:', error);
+        throw new Error(`Receipt validation failed: ${error.message}`);
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to validate purchase');
+      }
+
+      console.log('Subscription purchase validated successfully', data);
     } catch (error) {
       console.error('Error updating backend subscription:', error);
       throw error;
