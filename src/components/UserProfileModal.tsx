@@ -541,6 +541,31 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, on
               </Alert>
             )}
 
+            {/* Legal Links Section */}
+            <div className="space-y-4 pt-4 border-t">
+              <h3 className="font-medium text-gray-900">Legal</h3>
+              <div className="space-y-2">
+                <a
+                  href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <ShieldAlert className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm text-gray-700">Terms of Service</span>
+                </a>
+                <a
+                  href="https://linksmarttechnologies.com/tossortaste-privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <ShieldAlert className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm text-gray-700">Privacy Policy</span>
+                </a>
+              </div>
+            </div>
+
             {/* Delete Account Section */}
             <div className="space-y-4 pt-4 border-t">
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-3">
@@ -550,7 +575,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, on
                     Permanently delete your account and all associated data. This action cannot be undone.
                   </p>
                 </div>
-                
+
                 <Button
                   variant="destructive"
                   onClick={handleDeleteAccountClick}

@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Crown, CreditCard, Loader2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
-import { Link } from 'react-router-dom';
 import { shouldUseApplePayments, shouldUseStripe, getPlatformName } from '@/utils/platformUtils';
 import { paymentService } from '@/services/paymentService';
 import { appleIAP } from '@/integrations/apple/appleIAP';
@@ -313,9 +312,9 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
               <span className="block">You can manage or cancel your subscription in your device settings.</span>
               <span className="block mt-2">
                 By subscribing, you agree to our{' '}
-                <Link to="/terms" className="text-primary underline">Terms of Service</Link>
+                <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Terms of Service</a>
                 {' '}and{' '}
-                <Link to="/privacy" className="text-primary underline">Privacy Policy</Link>.
+                <a href="https://linksmarttechnologies.com/tossortaste-privacy-policy" target="_blank" rel="noopener noreferrer" className="text-primary underline">Privacy Policy</a>.
               </span>
             </p>
           </CardContent>
