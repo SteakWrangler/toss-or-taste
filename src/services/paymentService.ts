@@ -1,5 +1,6 @@
-import { shouldUseApplePayments, shouldUseStripe } from '@/utils/platformUtils';
+import { shouldUseApplePayments, shouldUseGooglePayments, shouldUseStripe } from '@/utils/platformUtils';
 import { appleIAP } from '@/integrations/apple/appleIAP';
+import { googlePlayBilling } from '@/integrations/google/googlePlayBilling';
 
 export interface PaymentService {
   initializePayments(userId: string): Promise<void>;
@@ -20,6 +21,21 @@ class ApplePaymentService implements PaymentService {
 
   async purchaseCredits(amount: 1 | 5): Promise<boolean> {
     return await appleIAP.purchaseCredits(amount);
+  }
+}
+
+class GooglePlayPaymentService implements PaymentService {
+  async initializePayments(userId: string): Promise<void> {
+    await googlePlayBilling.initialize(userId);
+  }
+
+  async purchaseSubscription(type: 'monthly' | 'yearly'): Promise<boolean> {
+    const subscriptionType = type === 'monthly' ? 'monthly' : 'annual';
+    return await googlePlayBilling.purchaseSubscription(subscriptionType);
+  }
+
+  async purchaseCredits(amount: 1 | 5): Promise<boolean> {
+    return await googlePlayBilling.purchaseCredits(amount);
   }
 }
 
@@ -102,6 +118,8 @@ class StripePaymentService implements PaymentService {
 export const getPaymentService = (): PaymentService => {
   if (shouldUseApplePayments()) {
     return new ApplePaymentService();
+  } else if (shouldUseGooglePayments()) {
+    return new GooglePlayPaymentService();
   } else if (shouldUseStripe()) {
     return new StripePaymentService();
   } else {

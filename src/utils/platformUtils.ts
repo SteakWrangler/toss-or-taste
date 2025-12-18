@@ -20,8 +20,12 @@ export const shouldUseApplePayments = () => {
   return isIOS();
 };
 
+export const shouldUseGooglePayments = () => {
+  return isAndroid();
+};
+
 export const shouldUseStripe = () => {
-  return isWeb() || isAndroid();
+  return isWeb();
 };
 
 export const getPlatformName = () => {

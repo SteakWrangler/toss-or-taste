@@ -7,9 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Crown, CreditCard, Loader2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
-import { shouldUseApplePayments, shouldUseStripe, getPlatformName } from '@/utils/platformUtils';
+import { shouldUseApplePayments, shouldUseGooglePayments, shouldUseStripe, getPlatformName } from '@/utils/platformUtils';
 import { paymentService } from '@/services/paymentService';
 import { appleIAP } from '@/integrations/apple/appleIAP';
+import { googlePlayBilling } from '@/integrations/google/googlePlayBilling';
 
 interface SubscriptionInfo {
   subscribed: boolean;
@@ -74,6 +75,20 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
         return () => {
           window.removeEventListener('iap-purchase-complete', handlePurchaseComplete);
         };
+      } else if (shouldUseGooglePayments()) {
+        const handlePurchaseComplete = async (event: any) => {
+          await refreshProfile(user.id);
+        };
+
+        window.addEventListener('iap-purchase-complete', handlePurchaseComplete);
+
+        googlePlayBilling.onPurchaseComplete(async (productId: string) => {
+          await refreshProfile(user.id);
+        });
+
+        return () => {
+          window.removeEventListener('iap-purchase-complete', handlePurchaseComplete);
+        };
       }
     }
   }, [user, checkSubscription, refreshProfile]);
@@ -94,7 +109,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       );
 
       if (success) {
-        if (shouldUseApplePayments()) {
+        if (shouldUseApplePayments() || shouldUseGooglePayments()) {
           toast.success('Subscription activated successfully!');
           onPurchaseComplete?.();
         }
@@ -105,7 +120,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       console.error('Exception during subscription:', error);
       toast.error('Failed to start subscription');
     } finally {
-      if (shouldUseApplePayments()) {
+      if (shouldUseApplePayments() || shouldUseGooglePayments()) {
         setLoadingStates(prev => ({ ...prev, [buttonKey]: false }));
       }
     }
@@ -147,7 +162,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       const success = await paymentService.purchaseCredits(creditAmount, priceId);
 
       if (success) {
-        if (shouldUseApplePayments()) {
+        if (shouldUseApplePayments() || shouldUseGooglePayments()) {
           // Optimistically update the profile credits in the UI
           if (profile) {
             const currentCredits = profile.room_credits || 0;
@@ -169,7 +184,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
       console.error('Exception during credits purchase:', error);
       toast.error('Failed to purchase credits');
     } finally {
-      if (shouldUseApplePayments()) {
+      if (shouldUseApplePayments() || shouldUseGooglePayments()) {
         setLoadingStates(prev => ({ ...prev, [buttonKey]: false }));
       }
     }
@@ -309,7 +324,15 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
           <CardContent className="pt-6">
             <p className="text-xs text-gray-600 text-center space-y-1">
               <span className="block">Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.</span>
-              <span className="block">You can manage or cancel your subscription in your device settings.</span>
+              {shouldUseApplePayments() && (
+                <span className="block">You can manage or cancel your subscription in your Apple ID settings.</span>
+              )}
+              {shouldUseGooglePayments() && (
+                <span className="block">You can manage or cancel your subscription in Google Play subscriptions settings.</span>
+              )}
+              {shouldUseStripe() && (
+                <span className="block">You can manage or cancel your subscription using the "Manage Subscription" button above.</span>
+              )}
               <span className="block mt-2">
                 By subscribing, you agree to our{' '}
                 <a href="https://www.apple.com/legal/internet-services/itunes/dev/stdeula/" target="_blank" rel="noopener noreferrer" className="text-primary underline">Terms of Service</a>
