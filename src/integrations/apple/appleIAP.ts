@@ -65,20 +65,14 @@ export class AppleIAPService {
         attempts++;
 
         // Check for CdvPurchase object
-        if (window.CdvPurchase) {
-          this.initializeCdvPurchase();
-          resolve();
-          return;
-        }
-
-        // Also check if window.store is properly populated
-        if (window.store && Object.keys(window.store).length > 0) {
+        if (window.CdvPurchase && window.CdvPurchase.store) {
+          console.log('Apple IAP: CdvPurchase found');
           resolve();
           return;
         }
 
         if (attempts >= maxAttempts) {
-          console.warn('Apple IAP: CdvPurchase timeout - proceeding anyway');
+          console.error('Apple IAP: CdvPurchase timeout - plugin not available');
           resolve();
         } else {
           setTimeout(checkCdvPurchase, 100);
@@ -88,23 +82,6 @@ export class AppleIAPService {
       // Start checking immediately
       checkCdvPurchase();
     });
-  }
-
-  private initializeCdvPurchase(): void {
-    if (!window.CdvPurchase) {
-      return;
-    }
-
-    try {
-      // Initialize the store with CdvPurchase
-      const store = window.CdvPurchase.store;
-
-      if (store) {
-        window.store = store;
-      }
-    } catch (error) {
-      console.error('Apple IAP: Error initializing CdvPurchase:', error);
-    }
   }
 
   async initialize(userId: string): Promise<void> {
@@ -120,76 +97,90 @@ export class AppleIAPService {
       // Wait for CdvPurchase to be available
       await this.waitForCdvPurchase();
 
-      if (!window.store || !window.store.register) {
-        throw new Error('Store plugin failed to initialize');
+      if (!window.CdvPurchase || !window.CdvPurchase.store) {
+        throw new Error('CdvPurchase plugin not available');
       }
 
-      // Register all products
-      window.store.register({
-        id: APPLE_PRODUCT_IDS.SINGLE_CREDIT,
-        type: window.store.CONSUMABLE,
-        platform: window.store.APPLE_APPSTORE,
-      });
+      const { store, ProductType, Platform } = window.CdvPurchase;
 
-      window.store.register({
-        id: APPLE_PRODUCT_IDS.CREDIT_PACK,
-        type: window.store.CONSUMABLE,
-        platform: window.store.APPLE_APPSTORE,
-      });
+      console.log('Apple IAP: Registering products');
 
-      window.store.register({
-        id: APPLE_PRODUCT_IDS.PREMIUM_MONTHLY,
-        type: window.store.PAID_SUBSCRIPTION,
-        platform: window.store.APPLE_APPSTORE,
-      });
+      // Register all products using v13 API
+      store.register([
+        {
+          id: APPLE_PRODUCT_IDS.SINGLE_CREDIT,
+          type: ProductType.CONSUMABLE,
+          platform: Platform.APPLE_APPSTORE,
+        },
+        {
+          id: APPLE_PRODUCT_IDS.CREDIT_PACK,
+          type: ProductType.CONSUMABLE,
+          platform: Platform.APPLE_APPSTORE,
+        },
+        {
+          id: APPLE_PRODUCT_IDS.PREMIUM_MONTHLY,
+          type: ProductType.PAID_SUBSCRIPTION,
+          platform: Platform.APPLE_APPSTORE,
+        },
+        {
+          id: APPLE_PRODUCT_IDS.PREMIUM_ANNUAL,
+          type: ProductType.PAID_SUBSCRIPTION,
+          platform: Platform.APPLE_APPSTORE,
+        },
+      ]);
 
-      window.store.register({
-        id: APPLE_PRODUCT_IDS.PREMIUM_ANNUAL,
-        type: window.store.PAID_SUBSCRIPTION,
-        platform: window.store.APPLE_APPSTORE,
-      });
+      console.log('Apple IAP: Setting up event handlers');
 
-      // Set up global error handler
-      window.store.error((error: any) => {
-        console.error('Apple IAP error:', error);
-      });
+      // Set up purchase handlers using v13 API
+      store.when()
+        .approved((transaction: any) => {
+          console.log('Apple IAP: Transaction approved', transaction);
+          transaction.verify();
+        })
+        .verified((receipt: any) => {
+          console.log('Apple IAP: Receipt verified', receipt);
+          this.handleVerifiedPurchase(receipt).then(() => {
+            receipt.finish();
+          });
+        })
+        .finished((purchase: any) => {
+          console.log('Apple IAP: Purchase finished', purchase);
+        })
+        .error((error: any) => {
+          console.error('Apple IAP: Purchase error', error);
+        });
 
-      // Set up purchase handlers
-      this.setupPurchaseHandlers();
+      console.log('Apple IAP: Initializing store');
 
-      // Set up ready callback
-      window.store.ready(() => {
-        this.isInitialized = true;
-      });
+      // Initialize the store with platform configuration
+      store.initialize([
+        {
+          platform: Platform.APPLE_APPSTORE,
+          options: {
+            needAppReceipt: true,
+          },
+        },
+      ]);
 
-      // Refresh to trigger product loading
-      window.store.refresh();
+      this.isInitialized = true;
+      console.log('Apple IAP: Initialization complete');
     } catch (error) {
       console.error('Failed to initialize Apple IAP:', error);
       throw error;
     }
   }
 
-  private setupPurchaseHandlers(): void {
-    if (!window.store) {
+  private async handleVerifiedPurchase(receipt: any): Promise<void> {
+    // In v13 API, the receipt contains products array
+    const products = receipt.products || [];
+
+    if (products.length === 0) {
+      console.warn('Apple IAP: No products in receipt');
       return;
     }
 
-    Object.values(APPLE_PRODUCT_IDS).forEach((productId) => {
-      const productHandler = window.store?.when(productId);
-      if (productHandler) {
-        productHandler
-          .approved((product: any) => {
-            product.finish();
-          })
-          .verified((product: any) => {
-            this.handleVerifiedPurchase(product);
-          });
-      }
-    });
-  }
-
-  private async handleVerifiedPurchase(product: any): Promise<void> {
+    // Process the first product in the receipt
+    const product = products[0];
     const productId = product.id;
 
     try {
@@ -210,33 +201,36 @@ export class AppleIAPService {
   }
 
   async purchaseCredits(creditAmount: 1 | 5): Promise<boolean> {
-    if (!shouldUseApplePayments() || !this.isInitialized || !window.store) {
+    if (!shouldUseApplePayments() || !this.isInitialized) {
       console.error('Apple IAP not available or not initialized');
       return false;
     }
 
+    if (!window.CdvPurchase || !window.CdvPurchase.store) {
+      console.error('CdvPurchase not available');
+      return false;
+    }
+
     try {
+      const { store } = window.CdvPurchase;
       const productId = creditAmount === 1 ? APPLE_PRODUCT_IDS.SINGLE_CREDIT : APPLE_PRODUCT_IDS.CREDIT_PACK;
-      const product = window.store.get(productId);
+      const product = store.get(productId);
 
       if (!product) {
         console.error('Product not found:', productId);
         throw new Error('Product not found');
       }
 
-      if (!product.canPurchase) {
-        console.error('Product cannot be purchased:', productId, product);
-        throw new Error('Product cannot be purchased at this time');
-      }
-
-      console.log('Initiating purchase for product:', productId);
+      console.log('Initiating purchase for product:', productId, product);
 
       // Order initiates the purchase flow - this will show the Apple purchase dialog
-      window.store.order(productId);
-
-      // Return true to indicate purchase was initiated (not completed)
-      // The actual completion is handled by the purchase handlers
-      return true;
+      const offer = store.get(productId)?.getOffer();
+      if (offer) {
+        offer.order();
+        return true;
+      } else {
+        throw new Error('No offer available for product');
+      }
     } catch (error) {
       console.error('Failed to initiate credit purchase:', error);
       return false;
@@ -244,33 +238,36 @@ export class AppleIAPService {
   }
 
   async purchaseSubscription(type: 'monthly' | 'annual'): Promise<boolean> {
-    if (!shouldUseApplePayments() || !this.isInitialized || !window.store) {
+    if (!shouldUseApplePayments() || !this.isInitialized) {
       console.error('Apple IAP not available or not initialized');
       return false;
     }
 
+    if (!window.CdvPurchase || !window.CdvPurchase.store) {
+      console.error('CdvPurchase not available');
+      return false;
+    }
+
     try {
+      const { store } = window.CdvPurchase;
       const productId = type === 'monthly' ? APPLE_PRODUCT_IDS.PREMIUM_MONTHLY : APPLE_PRODUCT_IDS.PREMIUM_ANNUAL;
-      const product = window.store.get(productId);
+      const product = store.get(productId);
 
       if (!product) {
         console.error('Subscription product not found:', productId);
         throw new Error('Subscription product not found');
       }
 
-      if (!product.canPurchase) {
-        console.error('Subscription cannot be purchased:', productId, product);
-        throw new Error('Subscription cannot be purchased at this time');
-      }
-
-      console.log('Initiating subscription purchase for product:', productId);
+      console.log('Initiating subscription purchase for product:', productId, product);
 
       // Order initiates the purchase flow - this will show the Apple purchase dialog
-      window.store.order(productId);
-
-      // Return true to indicate purchase was initiated (not completed)
-      // The actual completion is handled by the purchase handlers
-      return true;
+      const offer = store.get(productId)?.getOffer();
+      if (offer) {
+        offer.order();
+        return true;
+      } else {
+        throw new Error('No offer available for subscription');
+      }
     } catch (error) {
       console.error('Failed to initiate subscription purchase:', error);
       return false;
@@ -278,38 +275,44 @@ export class AppleIAPService {
   }
 
   async getProductInfo(productId: string): Promise<any> {
-    if (!shouldUseApplePayments() || !this.isInitialized || !window.store) {
+    if (!shouldUseApplePayments() || !this.isInitialized) {
       return null;
     }
 
-    return window.store.get(productId);
+    if (!window.CdvPurchase || !window.CdvPurchase.store) {
+      return null;
+    }
+
+    return window.CdvPurchase.store.get(productId);
   }
 
-  private async updateBackendCredits(creditAmount: number, product?: any): Promise<void> {
+  private async updateBackendCredits(creditAmount: number, receipt?: any): Promise<void> {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('User not authenticated');
       }
 
-      // Extract receipt data from the product object
-      if (!product || !product.transaction) {
-        console.error('No product or transaction data available');
-        throw new Error('Missing transaction data for receipt validation');
-      }
-
-      const transactionId = product.transaction.transactionIdentifier || product.transaction.id;
-      const receiptData = product.transaction.appStoreReceipt || product.transaction.receipt;
-
-      if (!receiptData || !transactionId) {
-        console.error('Missing receipt or transaction ID', { product });
+      // In v13 API, receipt contains transaction and nativePurchase
+      if (!receipt || !receipt.nativePurchase) {
+        console.error('No receipt or native purchase data available', receipt);
         throw new Error('Missing receipt data for validation');
       }
 
-      // Determine product ID
-      const productId = creditAmount === 1
-        ? APPLE_PRODUCT_IDS.SINGLE_CREDIT
-        : APPLE_PRODUCT_IDS.CREDIT_PACK;
+      // Extract transaction ID and receipt data from v13 structure
+      const transactionId = receipt.nativePurchase.transactionId || receipt.nativePurchase.transactionIdentifier;
+      const receiptData = receipt.nativePurchase.appStoreReceipt || receipt.nativePurchase.receipt;
+
+      if (!receiptData || !transactionId) {
+        console.error('Missing receipt or transaction ID', { receipt });
+        throw new Error('Missing receipt data for validation');
+      }
+
+      // Determine product ID from receipt products
+      const products = receipt.products || [];
+      const productId = products.length > 0 ? products[0].id : (
+        creditAmount === 1 ? APPLE_PRODUCT_IDS.SINGLE_CREDIT : APPLE_PRODUCT_IDS.CREDIT_PACK
+      );
 
       console.log('Validating credit purchase with backend', {
         productId,
@@ -342,29 +345,33 @@ export class AppleIAPService {
     }
   }
 
-  private async updateBackendSubscription(type: 'monthly' | 'annual', product?: any): Promise<void> {
+  private async updateBackendSubscription(type: 'monthly' | 'annual', receipt?: any): Promise<void> {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('User not authenticated');
       }
 
-      if (!product || !product.transaction) {
-        console.error('No product or transaction data available');
-        throw new Error('Missing transaction data for receipt validation');
-      }
-
-      const transactionId = product.transaction.transactionIdentifier || product.transaction.id;
-      const receiptData = product.transaction.appStoreReceipt || product.transaction.receipt;
-
-      if (!receiptData || !transactionId) {
-        console.error('Missing receipt or transaction ID', { product });
+      // In v13 API, receipt contains transaction and nativePurchase
+      if (!receipt || !receipt.nativePurchase) {
+        console.error('No receipt or native purchase data available', receipt);
         throw new Error('Missing receipt data for validation');
       }
 
-      const productId = type === 'monthly'
-        ? APPLE_PRODUCT_IDS.PREMIUM_MONTHLY
-        : APPLE_PRODUCT_IDS.PREMIUM_ANNUAL;
+      // Extract transaction ID and receipt data from v13 structure
+      const transactionId = receipt.nativePurchase.transactionId || receipt.nativePurchase.transactionIdentifier;
+      const receiptData = receipt.nativePurchase.appStoreReceipt || receipt.nativePurchase.receipt;
+
+      if (!receiptData || !transactionId) {
+        console.error('Missing receipt or transaction ID', { receipt });
+        throw new Error('Missing receipt data for validation');
+      }
+
+      // Determine product ID from receipt products
+      const products = receipt.products || [];
+      const productId = products.length > 0 ? products[0].id : (
+        type === 'monthly' ? APPLE_PRODUCT_IDS.PREMIUM_MONTHLY : APPLE_PRODUCT_IDS.PREMIUM_ANNUAL
+      );
 
       console.log('Validating subscription purchase with backend', {
         productId,
