@@ -63,7 +63,18 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
       if (shouldUseApplePayments()) {
         const handlePurchaseComplete = async (event: any) => {
+          const { productId } = event.detail || {};
           await refreshProfile(user.id);
+
+          // Show success message based on product type
+          if (productId?.includes('credit')) {
+            const credits = productId.includes('single') ? 1 : 5;
+            toast.success(`Successfully purchased ${credits} credit${credits > 1 ? 's' : ''}!`);
+          } else if (productId?.includes('premium')) {
+            toast.success('Subscription activated successfully!');
+          }
+
+          onPurchaseComplete?.();
         };
 
         window.addEventListener('iap-purchase-complete', handlePurchaseComplete);
@@ -77,7 +88,18 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
         };
       } else if (shouldUseGooglePayments()) {
         const handlePurchaseComplete = async (event: any) => {
+          const { productId } = event.detail || {};
           await refreshProfile(user.id);
+
+          // Show success message based on product type
+          if (productId?.includes('credit')) {
+            const credits = productId.includes('single') ? 1 : 5;
+            toast.success(`Successfully purchased ${credits} credit${credits > 1 ? 's' : ''}!`);
+          } else if (productId?.includes('premium')) {
+            toast.success('Subscription activated successfully!');
+          }
+
+          onPurchaseComplete?.();
         };
 
         window.addEventListener('iap-purchase-complete', handlePurchaseComplete);
@@ -110,11 +132,12 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
       if (success) {
         if (shouldUseApplePayments() || shouldUseGooglePayments()) {
-          toast.success('Subscription activated successfully!');
-          onPurchaseComplete?.();
+          // Purchase initiated - success message will come from purchase completion handler
+          // Don't show success toast here, just indicate the dialog should appear
+          console.log('Purchase dialog initiated');
         }
       } else {
-        toast.error('Failed to complete subscription purchase');
+        toast.error('Failed to initiate subscription purchase');
       }
     } catch (error) {
       console.error('Exception during subscription:', error);
@@ -163,22 +186,12 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
       if (success) {
         if (shouldUseApplePayments() || shouldUseGooglePayments()) {
-          // Optimistically update the profile credits in the UI
-          if (profile) {
-            const currentCredits = profile.room_credits || 0;
-            const newCredits = currentCredits + credits;
-
-            setProfile({
-              ...profile,
-              room_credits: newCredits
-            });
-          }
-
-          toast.success(`Successfully purchased ${credits} credits!`);
-          onPurchaseComplete?.();
+          // Purchase initiated - success message and credit update will come from purchase completion handler
+          // Don't show success toast or update credits here
+          console.log('Purchase dialog initiated for credits');
         }
       } else {
-        toast.error('Failed to complete credit purchase');
+        toast.error('Failed to initiate credit purchase');
       }
     } catch (error) {
       console.error('Exception during credits purchase:', error);

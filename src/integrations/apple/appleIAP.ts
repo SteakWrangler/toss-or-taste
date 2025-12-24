@@ -11,6 +11,7 @@ declare global {
       register: (product: { id: string; type: string; platform: string }) => void;
       ready: (callback: () => void) => void;
       refresh: () => void;
+      error: (callback: (error: any) => void) => void;
       when: (productId: string) => {
         initiated: (callback: (product: any) => void) => any;
         approved: (callback: (product: any) => void) => any;
@@ -171,8 +172,8 @@ export class AppleIAPService {
         this.isInitialized = true;
       });
 
-      // Initialize to trigger product loading
-      window.store.initialize();
+      // Refresh to trigger product loading
+      window.store.refresh();
     } catch (error) {
       console.error('Failed to initialize Apple IAP:', error);
       throw error;
@@ -220,6 +221,7 @@ export class AppleIAPService {
 
   async purchaseCredits(creditAmount: 1 | 5): Promise<boolean> {
     if (!shouldUseApplePayments() || !this.isInitialized || !window.store) {
+      console.error('Apple IAP not available or not initialized');
       return false;
     }
 
@@ -228,49 +230,60 @@ export class AppleIAPService {
       const product = window.store.get(productId);
 
       if (!product) {
+        console.error('Product not found:', productId);
         throw new Error('Product not found');
       }
 
       if (!product.canPurchase) {
+        console.error('Product cannot be purchased:', productId, product);
         throw new Error('Product cannot be purchased at this time');
       }
 
-      this.setupSinglePurchaseHandler(productId);
+      console.log('Initiating purchase for product:', productId);
+
+      // Order initiates the purchase flow - this will show the Apple purchase dialog
       window.store.order(productId);
 
+      // Return true to indicate purchase was initiated (not completed)
+      // The actual completion is handled by the purchase handlers
       return true;
     } catch (error) {
-      console.error('Failed to purchase credits:', error);
+      console.error('Failed to initiate credit purchase:', error);
       return false;
     }
   }
 
   async purchaseSubscription(type: 'monthly' | 'annual'): Promise<boolean> {
     if (!shouldUseApplePayments() || !this.isInitialized || !window.store) {
+      console.error('Apple IAP not available or not initialized');
       return false;
     }
 
     try {
       const productId = type === 'monthly' ? APPLE_PRODUCT_IDS.PREMIUM_MONTHLY : APPLE_PRODUCT_IDS.PREMIUM_ANNUAL;
+      const product = window.store.get(productId);
+
+      if (!product) {
+        console.error('Subscription product not found:', productId);
+        throw new Error('Subscription product not found');
+      }
+
+      if (!product.canPurchase) {
+        console.error('Subscription cannot be purchased:', productId, product);
+        throw new Error('Subscription cannot be purchased at this time');
+      }
+
+      console.log('Initiating subscription purchase for product:', productId);
+
+      // Order initiates the purchase flow - this will show the Apple purchase dialog
       window.store.order(productId);
+
+      // Return true to indicate purchase was initiated (not completed)
+      // The actual completion is handled by the purchase handlers
       return true;
     } catch (error) {
-      console.error('Failed to purchase subscription:', error);
+      console.error('Failed to initiate subscription purchase:', error);
       return false;
-    }
-  }
-
-  private setupSinglePurchaseHandler(productId: string): void {
-    const productHandler = window.store?.when(productId);
-    if (productHandler) {
-      productHandler
-        .approved(async (product: any) => {
-          await this.handleVerifiedPurchase(product);
-          product.finish();
-        })
-        .verified((product: any) => {
-          this.handleVerifiedPurchase(product);
-        });
     }
   }
 
