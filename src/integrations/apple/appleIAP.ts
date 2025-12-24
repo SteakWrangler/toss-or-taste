@@ -1,29 +1,19 @@
 import { shouldUseApplePayments } from '../../utils/platformUtils';
 import { supabase } from '../supabase/client';
 
-// TypeScript declarations for cordova-plugin-purchase
+// TypeScript declarations for cordova-plugin-purchase v13
 declare global {
   interface Window {
-    store?: {
-      CONSUMABLE: string;
-      PAID_SUBSCRIPTION: string;
-      APPLE_APPSTORE: string;
-      register: (product: { id: string; type: string; platform: string }) => void;
-      ready: (callback: () => void) => void;
-      refresh: () => void;
-      error: (callback: (error: any) => void) => void;
-      when: (productId: string) => {
-        initiated: (callback: (product: any) => void) => any;
-        approved: (callback: (product: any) => void) => any;
-        verified: (callback: (product: any) => void) => any;
-        finished: (callback: (product: any) => void) => any;
-        error: (callback: (error: any) => void) => any;
+    CdvPurchase?: {
+      store: any;
+      ProductType: {
+        CONSUMABLE: string;
+        PAID_SUBSCRIPTION: string;
       };
-      order: (productId: string) => void;
-      get: (productId: string) => any;
-      registeredProducts: any[];
+      Platform: {
+        APPLE_APPSTORE: string;
+      };
     };
-    CdvPurchase?: any;
   }
 }
 
