@@ -114,49 +114,17 @@ serve(async (req) => {
             status: 200,
           });
         } else {
-          // Transaction exists but subscription was never activated - fix it now
-          logStep("Transaction exists but subscription not active - reactivating", {
+          // Transaction exists but subscription was never activated
+          // We need to validate the receipt again to ensure we have current subscription data
+          logStep("Transaction exists but subscription not active - validating current state", {
             transactionId,
             currentStatus: profile?.subscription_status,
             productId: existingTransaction.product_id
           });
 
-          const subscriptionType = existingTransaction.product_id.includes('monthly') ? 'monthly' : 'annual';
-          const expiresDate = existingTransaction.subscription_expires_at
-            ? new Date(existingTransaction.subscription_expires_at)
-            : null;
-
-          if (!expiresDate) {
-            throw new Error("Existing transaction has no expiration date");
-          }
-
-          const { error: updateError } = await supabaseClient
-            .from("profiles")
-            .update({
-              subscription_type: subscriptionType,
-              subscription_status: 'active',
-              subscription_expires_at: expiresDate.toISOString(),
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", user.id);
-
-          if (updateError) throw new Error(`Failed to reactivate subscription: ${updateError.message}`);
-
-          logStep("Subscription reactivated successfully", {
-            userId: user.id,
-            subscriptionType,
-            expiresAt: expiresDate.toISOString()
-          });
-
-          return new Response(JSON.stringify({
-            success: true,
-            subscriptionType,
-            subscriptionStatus: 'active',
-            expiresAt: expiresDate.toISOString()
-          }), {
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 200,
-          });
+          // Don't reuse old transaction - fall through to validate with Apple again
+          // This ensures we get the current expiration date, not stale data
+          logStep("Re-validating receipt with Apple to get current subscription state");
         }
       } else {
         throw new Error("Transaction was previously rejected");
@@ -257,7 +225,9 @@ serve(async (req) => {
 
     if (updateError) throw new Error(`Failed to update subscription: ${updateError.message}`);
 
-    await supabaseClient.from("apple_iap_transactions").insert({
+    // Use upsert to handle both new transactions and zombie transactions
+    // This will insert if transaction doesn't exist, or update if it does
+    await supabaseClient.from("apple_iap_transactions").upsert({
       user_id: user.id,
       transaction_id: transactionId,
       original_transaction_id: originalTransactionId,
@@ -273,6 +243,8 @@ serve(async (req) => {
       validation_status: 'valid',
       processed: true,
       processed_at: new Date().toISOString()
+    }, {
+      onConflict: 'transaction_id'
     });
 
     logStep("Apple IAP subscription activated successfully", {
