@@ -133,27 +133,33 @@ export class AppleIAPService {
 
       // Set up purchase handlers using v13 API
       try {
-        store.when()
-          .approved((transaction: any) => {
-            console.log('Apple IAP: Transaction approved', transaction);
-            transaction.verify();
-          })
-          .verified((receipt: any) => {
-            console.log('Apple IAP: Receipt verified', receipt);
-            this.handleVerifiedPurchase(receipt).then(() => {
-              receipt.finish();
-            });
-          })
-          .finished((purchase: any) => {
-            console.log('Apple IAP: Purchase finished', purchase);
-          })
-          .error((error: any) => {
-            console.error('Apple IAP: Purchase error', error);
+        // Set up global transaction handlers
+        store.when().approved((transaction: any) => {
+          console.log('Apple IAP: Transaction approved', transaction);
+          return transaction.verify();
+        });
+
+        store.when().verified((receipt: any) => {
+          console.log('Apple IAP: Receipt verified', receipt);
+          this.handleVerifiedPurchase(receipt).then(() => {
+            receipt.finish();
+          }).catch((error: any) => {
+            console.error('Apple IAP: Error handling verified purchase:', error);
+            receipt.finish(); // Still finish even if backend fails
           });
+        });
+
+        store.when().finished((transaction: any) => {
+          console.log('Apple IAP: Transaction finished', transaction);
+        });
+
+        store.error((error: any) => {
+          console.error('Apple IAP: Store error', error);
+        });
 
         console.log('Apple IAP: Event handlers set up successfully');
       } catch (e) {
-        console.error('Apple IAP: Failed to set up event handlers:', e);
+        console.error('Apple IAP: Failed to set up event handlers:', e, JSON.stringify(e));
         throw e;
       }
 
