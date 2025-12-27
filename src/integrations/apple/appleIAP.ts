@@ -521,7 +521,13 @@ export class AppleIAPService {
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Failed to validate purchase');
+        // Check if this is a "transaction already processed" case
+        if (data.message && data.message.includes('already processed')) {
+          console.log('Subscription already processed, treating as success:', data);
+          // Don't throw - this is actually a success case
+        } else {
+          throw new Error(data.error || 'Failed to validate purchase');
+        }
       }
 
       console.log('Subscription purchase validated successfully', data);
