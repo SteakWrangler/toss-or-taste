@@ -456,7 +456,8 @@ export class AppleIAPService {
 
       if (error) {
         console.error('Receipt validation failed:', error);
-        throw new Error(`Receipt validation failed: ${error.message}`);
+        console.error('Full error details:', JSON.stringify(error, null, 2));
+        throw new Error(`Receipt validation failed: ${error.message || JSON.stringify(error)}`);
       }
 
       if (!data.success) {
@@ -515,7 +516,8 @@ export class AppleIAPService {
 
       if (error) {
         console.error('Receipt validation failed:', error);
-        throw new Error(`Receipt validation failed: ${error.message}`);
+        console.error('Full error details:', JSON.stringify(error, null, 2));
+        throw new Error(`Receipt validation failed: ${error.message || JSON.stringify(error)}`);
       }
 
       if (!data.success) {
