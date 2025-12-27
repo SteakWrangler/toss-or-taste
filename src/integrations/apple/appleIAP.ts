@@ -167,7 +167,42 @@ export class AppleIAPService {
 
       // Initialize the store with platform configuration
       try {
-        await store.initialize([Platform.APPLE_APPSTORE]);
+        // Start initialization (this returns immediately, doesn't wait for products)
+        store.initialize([Platform.APPLE_APPSTORE]);
+        console.log('Apple IAP: Store initialize() called');
+
+        // Wait for products to be loaded
+        await new Promise<void>((resolve) => {
+          let attempts = 0;
+          const maxAttempts = 50; // 50 attempts * 200ms = 10 seconds
+
+          const checkProducts = () => {
+            attempts++;
+
+            // Check if all products are loaded
+            const allProductsLoaded = Object.values(APPLE_PRODUCT_IDS).every(id => {
+              const product = store.get(id);
+              return product !== null && product !== undefined;
+            });
+
+            if (allProductsLoaded) {
+              console.log('Apple IAP: All products loaded from App Store');
+              resolve();
+              return;
+            }
+
+            if (attempts >= maxAttempts) {
+              console.warn('Apple IAP: Timeout waiting for products, proceeding anyway');
+              console.log('Apple IAP: Available products:', store.products?.map((p: any) => p.id));
+              resolve();
+            } else {
+              setTimeout(checkProducts, 200);
+            }
+          };
+
+          checkProducts();
+        });
+
         console.log('Apple IAP: Store initialized successfully');
       } catch (e) {
         console.error('Apple IAP: Failed to initialize store:', e);
