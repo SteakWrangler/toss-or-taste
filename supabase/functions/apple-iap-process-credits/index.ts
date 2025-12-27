@@ -129,10 +129,30 @@ serve(async (req) => {
     }
 
     const receipt = validationResult.receipt;
-    const inAppPurchases = receipt.in_app || [];
-    const purchase = inAppPurchases.find((p: any) => p.transaction_id === transactionId);
 
-    if (!purchase) throw new Error("Transaction not found in receipt");
+    // For sandbox receipts, transactions can be in receipt.in_app
+    // Try to find the transaction in receipt.in_app
+    const inAppPurchases = receipt.in_app || [];
+    let purchase = inAppPurchases.find((p: any) => p.transaction_id === transactionId);
+
+    // If not found, try latest_receipt_info (sometimes used for subscriptions/renewals)
+    if (!purchase && validationResult.latest_receipt_info) {
+      purchase = validationResult.latest_receipt_info.find((p: any) => p.transaction_id === transactionId);
+    }
+
+    // Log receipt structure for debugging if transaction not found
+    if (!purchase) {
+      logStep("Transaction not found - receipt structure", {
+        transactionId,
+        hasInApp: !!receipt.in_app,
+        inAppCount: inAppPurchases.length,
+        inAppTransactionIds: inAppPurchases.map((p: any) => p.transaction_id),
+        hasLatestReceiptInfo: !!validationResult.latest_receipt_info,
+        latestReceiptInfoCount: validationResult.latest_receipt_info?.length || 0,
+        latestReceiptInfoIds: validationResult.latest_receipt_info?.map((p: any) => p.transaction_id) || []
+      });
+      throw new Error("Transaction not found in receipt");
+    }
     if (purchase.product_id !== productId) {
       throw new Error(`Product ID mismatch: expected ${productId}, got ${purchase.product_id}`);
     }

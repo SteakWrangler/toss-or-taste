@@ -129,12 +129,39 @@ serve(async (req) => {
       throw new Error(`Apple receipt validation failed with status: ${validationResult.status}`);
     }
 
+    // For subscriptions, try latest_receipt_info first (most common location)
     const latestReceiptInfo = validationResult.latest_receipt_info || [];
-    const purchase = latestReceiptInfo.find((p: any) =>
+    let purchase = latestReceiptInfo.find((p: any) =>
       p.transaction_id === transactionId || p.original_transaction_id === transactionId
     );
 
-    if (!purchase) throw new Error("Transaction not found in receipt");
+    // Fallback to receipt.in_app for sandbox or non-auto-renewable subscriptions
+    if (!purchase && validationResult.receipt?.in_app) {
+      const inAppPurchases = validationResult.receipt.in_app;
+      purchase = inAppPurchases.find((p: any) =>
+        p.transaction_id === transactionId || p.original_transaction_id === transactionId
+      );
+    }
+
+    // Log receipt structure for debugging if transaction not found
+    if (!purchase) {
+      logStep("Transaction not found - receipt structure", {
+        transactionId,
+        hasLatestReceiptInfo: !!validationResult.latest_receipt_info,
+        latestReceiptInfoCount: latestReceiptInfo.length,
+        latestReceiptInfoIds: latestReceiptInfo.map((p: any) => ({
+          transaction_id: p.transaction_id,
+          original_transaction_id: p.original_transaction_id
+        })),
+        hasInApp: !!validationResult.receipt?.in_app,
+        inAppCount: validationResult.receipt?.in_app?.length || 0,
+        inAppTransactionIds: validationResult.receipt?.in_app?.map((p: any) => ({
+          transaction_id: p.transaction_id,
+          original_transaction_id: p.original_transaction_id
+        })) || []
+      });
+      throw new Error("Transaction not found in receipt");
+    }
     if (purchase.product_id !== productId) {
       throw new Error(`Product ID mismatch: expected ${productId}, got ${purchase.product_id}`);
     }
