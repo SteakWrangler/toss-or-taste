@@ -252,6 +252,12 @@ export class AppleIAPService {
   }
 
   private async handleVerifiedPurchase(receipt: any): Promise<void> {
+    console.log('Apple IAP: handleVerifiedPurchase called with receipt:', {
+      id: receipt.id,
+      hasSourceReceipt: !!receipt.sourceReceipt,
+      transactionCount: receipt.sourceReceipt?.transactions?.length || 0
+    });
+
     // In v13 API, the receipt structure is: receipt.sourceReceipt.transactions
     if (!receipt.sourceReceipt || !receipt.sourceReceipt.transactions) {
       console.error('Apple IAP: Invalid receipt structure', receipt);
@@ -265,8 +271,18 @@ export class AppleIAPService {
       return;
     }
 
+    console.log(`Apple IAP: Processing ${transactions.length} transaction(s)`);
+
     // Process each transaction (usually there's just one)
     for (const transaction of transactions) {
+      console.log('Apple IAP: Checking transaction:', {
+        id: transaction.transactionId,
+        state: transaction.state,
+        hasProducts: !!transaction.products,
+        productCount: transaction.products?.length || 0,
+        productId: transaction.products?.[0]?.id
+      });
+
       // Skip finished transactions (already processed)
       if (transaction.state === 'finished') {
         console.log('Apple IAP: Skipping already finished transaction:', transaction.transactionId);
@@ -291,13 +307,21 @@ export class AppleIAPService {
           await this.updateBackendSubscription('monthly', receipt, transaction);
         } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_ANNUAL) {
           await this.updateBackendSubscription('annual', receipt, transaction);
+        } else {
+          console.warn('Apple IAP: Unknown product ID, skipping:', productId);
+          continue;
         }
 
+        console.log('Apple IAP: Backend update completed for:', productId);
         this.notifyPurchaseComplete(productId);
       } catch (error) {
-        console.error('Failed to update backend after purchase:', error);
+        console.error('Apple IAP: Failed to update backend after purchase:', error);
+        // Still throw to prevent finishing the transaction if backend fails
+        throw error;
       }
     }
+
+    console.log('Apple IAP: handleVerifiedPurchase completed');
   }
 
   async purchaseCredits(creditAmount: 1 | 5): Promise<boolean> {
