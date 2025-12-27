@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Crown, CreditCard, Loader2, Smartphone } from 'lucide-react';
 import { toast } from 'sonner';
-import { shouldUseApplePayments, shouldUseGooglePayments, shouldUseStripe, getPlatformName } from '@/utils/platformUtils';
+import { shouldUseApplePayments, shouldUseGooglePayments, shouldUseStripe } from '@/utils/platformUtils';
 import { paymentService } from '@/services/paymentService';
 import { appleIAP } from '@/integrations/apple/appleIAP';
 import { googlePlayBilling } from '@/integrations/google/googlePlayBilling';
@@ -236,23 +236,8 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
   const isSubscribed = subscriptionInfo?.subscribed || false;
   const subscriptionType = subscriptionInfo?.subscription_type || 'none';
 
-  // Debug logging
-  console.log('SubscriptionManager Debug:', {
-    isSubscribed,
-    subscriptionType,
-    isApplePayments: shouldUseApplePayments(),
-    isGooglePayments: shouldUseGooglePayments(),
-    isStripe: shouldUseStripe(),
-    subscriptionInfo
-  });
-
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
-      {/* MASSIVE DEBUG BOX */}
-      <div className="bg-red-500 text-white p-8 text-2xl font-bold text-center">
-        DEBUG: Platform = {getPlatformName()} | Subscribed = {String(isSubscribed)} | Apple = {String(shouldUseApplePayments())}
-      </div>
-
       {/* Subscription Status */}
       <Card className="border-primary">
         <CardHeader>
@@ -281,16 +266,11 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
                   Renews: {new Date(subscriptionInfo.subscription_expires_at).toLocaleDateString()}
                 </p>
               )}
+              <p className="text-sm text-muted-foreground mt-2">
+                To cancel your subscription, go to Settings → [Your Name] → Subscriptions on your device.
+              </p>
             </div>
           )}
-
-          {/* DEBUG: Show all conditions */}
-          <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded text-xs">
-            <div>isSubscribed: {String(isSubscribed)}</div>
-            <div>shouldUseApplePayments: {String(shouldUseApplePayments())}</div>
-            <div>shouldUseStripe: {String(shouldUseStripe())}</div>
-            <div>Platform: {getPlatformName()}</div>
-          </div>
 
           {isSubscribed && shouldUseStripe() && (
             <Button onClick={handleManageSubscription} disabled={loadingStates['manage-subscription']}>
