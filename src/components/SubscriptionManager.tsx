@@ -236,6 +236,16 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
   const isSubscribed = subscriptionInfo?.subscribed || false;
   const subscriptionType = subscriptionInfo?.subscription_type || 'none';
 
+  // Debug logging
+  console.log('SubscriptionManager Debug:', {
+    isSubscribed,
+    subscriptionType,
+    isApplePayments: shouldUseApplePayments(),
+    isGooglePayments: shouldUseGooglePayments(),
+    isStripe: shouldUseStripe(),
+    subscriptionInfo
+  });
+
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       {/* Subscription Status */}
@@ -277,14 +287,18 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
           )}
 
           {isSubscribed && shouldUseApplePayments() && (
-            <div className="text-sm text-muted-foreground">
-              To manage or cancel your subscription, go to Settings → [Your Name] → Subscriptions on your device.
+            <div className="mt-4 p-3 bg-gray-50 rounded-md border border-gray-200">
+              <p className="text-sm text-gray-700">
+                <strong>Manage Subscription:</strong> To cancel or modify your subscription, go to <strong>Settings → [Your Name] → Subscriptions</strong> on your device.
+              </p>
             </div>
           )}
 
           {isSubscribed && shouldUseGooglePayments() && (
-            <div className="text-sm text-muted-foreground">
-              To manage or cancel your subscription, open the Google Play Store app → Menu → Subscriptions.
+            <div className="mt-4 p-3 bg-gray-50 rounded-md border border-gray-200">
+              <p className="text-sm text-gray-700">
+                <strong>Manage Subscription:</strong> To cancel or modify your subscription, open the <strong>Google Play Store app → Menu → Subscriptions</strong>.
+              </p>
             </div>
           )}
         </CardContent>
