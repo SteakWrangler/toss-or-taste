@@ -193,7 +193,15 @@ export class AppleIAPService {
 
             if (attempts >= maxAttempts) {
               console.warn('Apple IAP: Timeout waiting for products, proceeding anyway');
-              console.log('Apple IAP: Available products:', store.products?.map((p: any) => p.id));
+              console.log('Apple IAP: Registered products:', store.registeredProducts?.map((p: any) => ({ id: p.id, state: p.state })));
+              console.log('Apple IAP: Available products:', store.products?.map((p: any) => ({ id: p.id, valid: p.valid, canPurchase: p.canPurchase })));
+
+              // Log individual product status
+              Object.values(APPLE_PRODUCT_IDS).forEach(id => {
+                const product = store.get(id);
+                console.log(`Product ${id}:`, product ? { valid: product.valid, state: product.state, canPurchase: product.canPurchase } : 'NOT FOUND');
+              });
+
               resolve();
             } else {
               setTimeout(checkProducts, 200);
