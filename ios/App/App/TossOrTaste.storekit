@@ -3,7 +3,7 @@
   "nonRenewingSubscriptions" : [],
   "products" : [
     {
-      "displayPrice" : "0.99",
+      "displayPrice" : "1.00",
       "familyShareable" : false,
       "internalID" : "single_credit_001",
       "localizations" : [
@@ -18,7 +18,7 @@
       "type" : "Consumable"
     },
     {
-      "displayPrice" : "3.99",
+      "displayPrice" : "4.00",
       "familyShareable" : false,
       "internalID" : "credit_pack_001",
       "localizations" : [
@@ -38,7 +38,7 @@
     "locale" : "en_US",
     "storefront" : "USA",
     "_applicationInternalID" : "6737390851",
-    "_developerTeamID" : "YOUR_TEAM_ID",
+    "_developerTeamID" : "H8R3ZMUBWR",
     "_failTransactionsEnabled" : false,
     "_lastSynchronizedDate" : 753148800.0,
     "_storeKitErrors" : [
@@ -93,7 +93,7 @@
     {
       "adHocOffers" : [],
       "codeOffers" : [],
-      "displayPrice" : "9.99",
+      "displayPrice" : "5.00",
       "familyShareable" : false,
       "groupNumber" : 1,
       "internalID" : "premium_monthly_001",
@@ -114,7 +114,7 @@
     {
       "adHocOffers" : [],
       "codeOffers" : [],
-      "displayPrice" : "99.99",
+      "displayPrice" : "50.00",
       "familyShareable" : false,
       "groupNumber" : 1,
       "internalID" : "premium_annual_001",
