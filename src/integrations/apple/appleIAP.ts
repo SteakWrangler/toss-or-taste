@@ -267,6 +267,12 @@ export class AppleIAPService {
 
     // Process each transaction (usually there's just one)
     for (const transaction of transactions) {
+      // Skip finished transactions (already processed)
+      if (transaction.state === 'finished') {
+        console.log('Apple IAP: Skipping already finished transaction:', transaction.transactionId);
+        continue;
+      }
+
       if (!transaction.products || transaction.products.length === 0) {
         console.warn('Apple IAP: No products in transaction', transaction);
         continue;
@@ -278,13 +284,13 @@ export class AppleIAPService {
 
       try {
         if (productId === APPLE_PRODUCT_IDS.SINGLE_CREDIT) {
-          await this.updateBackendCredits(1, receipt);
+          await this.updateBackendCredits(1, receipt, transaction);
         } else if (productId === APPLE_PRODUCT_IDS.CREDIT_PACK) {
-          await this.updateBackendCredits(5, receipt);
+          await this.updateBackendCredits(5, receipt, transaction);
         } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_MONTHLY) {
-          await this.updateBackendSubscription('monthly', receipt);
+          await this.updateBackendSubscription('monthly', receipt, transaction);
         } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_ANNUAL) {
-          await this.updateBackendSubscription('annual', receipt);
+          await this.updateBackendSubscription('annual', receipt, transaction);
         }
 
         this.notifyPurchaseComplete(productId);
@@ -380,31 +386,32 @@ export class AppleIAPService {
     return window.CdvPurchase.store.get(productId);
   }
 
-  private async updateBackendCredits(creditAmount: number, receipt?: any): Promise<void> {
+  private async updateBackendCredits(creditAmount: number, receipt?: any, transaction?: any): Promise<void> {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('User not authenticated');
       }
 
-      // In v13 API, receipt contains transaction and nativePurchase
-      if (!receipt || !receipt.nativePurchase) {
-        console.error('No receipt or native purchase data available', receipt);
+      // In v13 API, receipt contains nativePurchase with the raw receipt data
+      if (!receipt || !receipt.sourceReceipt || !receipt.sourceReceipt.nativeData) {
+        console.error('No receipt or native data available', receipt);
         throw new Error('Missing receipt data for validation');
       }
 
-      // Extract transaction ID and receipt data from v13 structure
-      const transactionId = receipt.nativePurchase.transactionId || receipt.nativePurchase.transactionIdentifier;
-      const receiptData = receipt.nativePurchase.appStoreReceipt || receipt.nativePurchase.receipt;
+      // Get receipt data from the sourceReceipt.nativeData
+      const receiptData = receipt.sourceReceipt.nativeData.appStoreReceipt;
+
+      // Get transaction ID from the transaction object passed in
+      const transactionId = transaction?.transactionId;
 
       if (!receiptData || !transactionId) {
-        console.error('Missing receipt or transaction ID', { receipt });
+        console.error('Missing receipt or transaction ID', { receipt, transaction });
         throw new Error('Missing receipt data for validation');
       }
 
-      // Determine product ID from receipt products
-      const products = receipt.products || [];
-      const productId = products.length > 0 ? products[0].id : (
+      // Get product ID from the transaction
+      const productId = transaction?.products?.[0]?.id || (
         creditAmount === 1 ? APPLE_PRODUCT_IDS.SINGLE_CREDIT : APPLE_PRODUCT_IDS.CREDIT_PACK
       );
 
@@ -439,31 +446,32 @@ export class AppleIAPService {
     }
   }
 
-  private async updateBackendSubscription(type: 'monthly' | 'annual', receipt?: any): Promise<void> {
+  private async updateBackendSubscription(type: 'monthly' | 'annual', receipt?: any, transaction?: any): Promise<void> {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
         throw new Error('User not authenticated');
       }
 
-      // In v13 API, receipt contains transaction and nativePurchase
-      if (!receipt || !receipt.nativePurchase) {
-        console.error('No receipt or native purchase data available', receipt);
+      // In v13 API, receipt contains nativePurchase with the raw receipt data
+      if (!receipt || !receipt.sourceReceipt || !receipt.sourceReceipt.nativeData) {
+        console.error('No receipt or native data available', receipt);
         throw new Error('Missing receipt data for validation');
       }
 
-      // Extract transaction ID and receipt data from v13 structure
-      const transactionId = receipt.nativePurchase.transactionId || receipt.nativePurchase.transactionIdentifier;
-      const receiptData = receipt.nativePurchase.appStoreReceipt || receipt.nativePurchase.receipt;
+      // Get receipt data from the sourceReceipt.nativeData
+      const receiptData = receipt.sourceReceipt.nativeData.appStoreReceipt;
+
+      // Get transaction ID from the transaction object passed in
+      const transactionId = transaction?.transactionId;
 
       if (!receiptData || !transactionId) {
-        console.error('Missing receipt or transaction ID', { receipt });
+        console.error('Missing receipt or transaction ID', { receipt, transaction });
         throw new Error('Missing receipt data for validation');
       }
 
-      // Determine product ID from receipt products
-      const products = receipt.products || [];
-      const productId = products.length > 0 ? products[0].id : (
+      // Get product ID from the transaction
+      const productId = transaction?.products?.[0]?.id || (
         type === 'monthly' ? APPLE_PRODUCT_IDS.PREMIUM_MONTHLY : APPLE_PRODUCT_IDS.PREMIUM_ANNUAL
       );
 
