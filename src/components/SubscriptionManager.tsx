@@ -248,6 +248,11 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
+      {/* MASSIVE DEBUG BOX */}
+      <div className="bg-red-500 text-white p-8 text-2xl font-bold text-center">
+        DEBUG: Platform = {getPlatformName()} | Subscribed = {String(isSubscribed)} | Apple = {String(shouldUseApplePayments())}
+      </div>
+
       {/* Subscription Status */}
       <Card className="border-primary">
         <CardHeader>
