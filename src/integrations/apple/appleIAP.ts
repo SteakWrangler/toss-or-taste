@@ -84,7 +84,7 @@ export class AppleIAPService {
     });
   }
 
-  async initialize(userId: string): Promise<void> {
+  async initialize(_userId: string): Promise<void> {
     if (!shouldUseApplePayments()) {
       return;
     }
@@ -132,35 +132,41 @@ export class AppleIAPService {
       console.log('Apple IAP: Setting up event handlers');
 
       // Set up purchase handlers using v13 API
-      store.when()
-        .approved((transaction: any) => {
-          console.log('Apple IAP: Transaction approved', transaction);
-          transaction.verify();
-        })
-        .verified((receipt: any) => {
-          console.log('Apple IAP: Receipt verified', receipt);
-          this.handleVerifiedPurchase(receipt).then(() => {
-            receipt.finish();
+      try {
+        store.when()
+          .approved((transaction: any) => {
+            console.log('Apple IAP: Transaction approved', transaction);
+            transaction.verify();
+          })
+          .verified((receipt: any) => {
+            console.log('Apple IAP: Receipt verified', receipt);
+            this.handleVerifiedPurchase(receipt).then(() => {
+              receipt.finish();
+            });
+          })
+          .finished((purchase: any) => {
+            console.log('Apple IAP: Purchase finished', purchase);
+          })
+          .error((error: any) => {
+            console.error('Apple IAP: Purchase error', error);
           });
-        })
-        .finished((purchase: any) => {
-          console.log('Apple IAP: Purchase finished', purchase);
-        })
-        .error((error: any) => {
-          console.error('Apple IAP: Purchase error', error);
-        });
 
-      console.log('Apple IAP: Initializing store');
+        console.log('Apple IAP: Event handlers set up successfully');
+      } catch (e) {
+        console.error('Apple IAP: Failed to set up event handlers:', e);
+        throw e;
+      }
+
+      console.log('Apple IAP: Initializing store with platform:', Platform.APPLE_APPSTORE);
 
       // Initialize the store with platform configuration
-      store.initialize([
-        {
-          platform: Platform.APPLE_APPSTORE,
-          options: {
-            needAppReceipt: true,
-          },
-        },
-      ]);
+      try {
+        await store.initialize([Platform.APPLE_APPSTORE]);
+        console.log('Apple IAP: Store initialized successfully');
+      } catch (e) {
+        console.error('Apple IAP: Failed to initialize store:', e);
+        throw e;
+      }
 
       this.isInitialized = true;
       console.log('Apple IAP: Initialization complete');
