@@ -165,6 +165,20 @@ export class AppleIAPService {
 
       console.log('Apple IAP: Initializing store with platform:', Platform.APPLE_APPSTORE);
 
+      // Add detailed error logging
+      store.when().productUpdated((product: any) => {
+        console.log('Apple IAP: Product updated:', {
+          id: product.id,
+          title: product.title,
+          description: product.description,
+          price: product.price,
+          currency: product.currency,
+          state: product.state,
+          valid: product.valid,
+          canPurchase: product.canPurchase
+        });
+      });
+
       // Initialize the store with platform configuration
       try {
         // Start initialization (this returns immediately, doesn't wait for products)
