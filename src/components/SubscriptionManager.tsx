@@ -123,7 +123,7 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
         };
       }
     }
-  }, [user, checkSubscription, refreshProfile]);
+  }, [user]); // Removed checkSubscription and refreshProfile from dependencies to prevent infinite loop
 
   const handleSubscribe = async (priceId: string, type: string) => {
     if (!user) {
