@@ -252,32 +252,45 @@ export class AppleIAPService {
   }
 
   private async handleVerifiedPurchase(receipt: any): Promise<void> {
-    // In v13 API, the receipt contains products array
-    const products = receipt.products || [];
-
-    if (products.length === 0) {
-      console.warn('Apple IAP: No products in receipt');
+    // In v13 API, the receipt structure is: receipt.sourceReceipt.transactions
+    if (!receipt.sourceReceipt || !receipt.sourceReceipt.transactions) {
+      console.error('Apple IAP: Invalid receipt structure', receipt);
       return;
     }
 
-    // Process the first product in the receipt
-    const product = products[0];
-    const productId = product.id;
+    const transactions = receipt.sourceReceipt.transactions;
 
-    try {
-      if (productId === APPLE_PRODUCT_IDS.SINGLE_CREDIT) {
-        await this.updateBackendCredits(1, product);
-      } else if (productId === APPLE_PRODUCT_IDS.CREDIT_PACK) {
-        await this.updateBackendCredits(5, product);
-      } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_MONTHLY) {
-        await this.updateBackendSubscription('monthly', product);
-      } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_ANNUAL) {
-        await this.updateBackendSubscription('annual', product);
+    if (transactions.length === 0) {
+      console.warn('Apple IAP: No transactions in receipt');
+      return;
+    }
+
+    // Process each transaction (usually there's just one)
+    for (const transaction of transactions) {
+      if (!transaction.products || transaction.products.length === 0) {
+        console.warn('Apple IAP: No products in transaction', transaction);
+        continue;
       }
 
-      this.notifyPurchaseComplete(productId);
-    } catch (error) {
-      console.error('Failed to update backend after purchase:', error);
+      // Get the product ID from the transaction
+      const productId = transaction.products[0].id;
+      console.log('Apple IAP: Processing purchase for product:', productId);
+
+      try {
+        if (productId === APPLE_PRODUCT_IDS.SINGLE_CREDIT) {
+          await this.updateBackendCredits(1, receipt);
+        } else if (productId === APPLE_PRODUCT_IDS.CREDIT_PACK) {
+          await this.updateBackendCredits(5, receipt);
+        } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_MONTHLY) {
+          await this.updateBackendSubscription('monthly', receipt);
+        } else if (productId === APPLE_PRODUCT_IDS.PREMIUM_ANNUAL) {
+          await this.updateBackendSubscription('annual', receipt);
+        }
+
+        this.notifyPurchaseComplete(productId);
+      } catch (error) {
+        console.error('Failed to update backend after purchase:', error);
+      }
     }
   }
 
