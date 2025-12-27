@@ -43,23 +43,53 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // First check if user has an active Apple IAP subscription
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("subscription_type, subscription_status, subscription_expires_at")
+      .eq("id", user.id)
+      .single();
+
+    // If user has an active Apple IAP subscription, return that instead of checking Stripe
+    if (profile && profile.subscription_status === 'active' && profile.subscription_expires_at) {
+      const expiresAt = new Date(profile.subscription_expires_at);
+      if (expiresAt > new Date()) {
+        logStep("User has active Apple IAP subscription", {
+          subscriptionType: profile.subscription_type,
+          expiresAt: profile.subscription_expires_at
+        });
+        return new Response(JSON.stringify({
+          subscribed: true,
+          subscription_type: profile.subscription_type,
+          subscription_status: 'active',
+          subscription_expires_at: profile.subscription_expires_at
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
+      }
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2023-10-16" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
+
     if (customers.data.length === 0) {
-      logStep("No customer found, updating unsubscribed state");
-      await supabaseClient.from("profiles").update({
-        stripe_customer_id: null,
-        subscription_status: 'inactive',
+      logStep("No Stripe customer found and no active Apple IAP subscription");
+      // Only update if there's no active Apple subscription
+      if (profile?.subscription_status !== 'active') {
+        await supabaseClient.from("profiles").update({
+          stripe_customer_id: null,
+          subscription_status: 'inactive',
+          subscription_type: 'none',
+          subscription_expires_at: null,
+          updated_at: new Date().toISOString(),
+        }).eq('id', user.id);
+      }
+
+      return new Response(JSON.stringify({
+        subscribed: false,
         subscription_type: 'none',
-        subscription_expires_at: null,
-        updated_at: new Date().toISOString(),
-      }).eq('id', user.id);
-      
-      return new Response(JSON.stringify({ 
-        subscribed: false, 
-        subscription_type: 'none',
-        subscription_status: 'inactive' 
+        subscription_status: 'inactive'
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
