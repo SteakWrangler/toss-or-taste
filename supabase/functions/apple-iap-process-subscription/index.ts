@@ -226,7 +226,14 @@ serve(async (req) => {
 
     if (!expiresDate) throw new Error("No expiration date in receipt");
 
-    const { error: updateError } = await supabaseClient
+    logStep("Attempting to update profile", {
+      userId: user.id,
+      subscriptionType,
+      subscriptionStatus: 'active',
+      expiresAt: expiresDate.toISOString()
+    });
+
+    const { data: updateData, error: updateError } = await supabaseClient
       .from("profiles")
       .update({
         subscription_type: subscriptionType,
@@ -234,9 +241,32 @@ serve(async (req) => {
         subscription_expires_at: expiresDate.toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .select();
+
+    logStep("Profile update result", {
+      updateError: updateError?.message || null,
+      updateData,
+      rowsAffected: updateData?.length || 0
+    });
 
     if (updateError) throw new Error(`Failed to update subscription: ${updateError.message}`);
+
+    if (!updateData || updateData.length === 0) {
+      throw new Error(`Profile update returned no rows - user may not exist: ${user.id}`);
+    }
+
+    // Verify the update actually worked by reading it back
+    const { data: verifyProfile, error: verifyError } = await supabaseClient
+      .from("profiles")
+      .select("subscription_type, subscription_status, subscription_expires_at")
+      .eq("id", user.id)
+      .single();
+
+    logStep("Verification query result", {
+      verifyError: verifyError?.message || null,
+      verifyProfile
+    });
 
     // Use upsert to handle both new transactions and zombie transactions
     // This will insert if transaction doesn't exist, or update if it does
