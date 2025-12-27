@@ -279,6 +279,14 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
             </div>
           )}
 
+          {/* DEBUG: Show all conditions */}
+          <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 rounded text-xs">
+            <div>isSubscribed: {String(isSubscribed)}</div>
+            <div>shouldUseApplePayments: {String(shouldUseApplePayments())}</div>
+            <div>shouldUseStripe: {String(shouldUseStripe())}</div>
+            <div>Platform: {getPlatformName()}</div>
+          </div>
+
           {isSubscribed && shouldUseStripe() && (
             <Button onClick={handleManageSubscription} disabled={loadingStates['manage-subscription']}>
               {loadingStates['manage-subscription'] ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
