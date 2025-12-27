@@ -66,6 +66,11 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
           const { productId } = event.detail || {};
           await refreshProfile(user.id);
 
+          // If it's a subscription, also refresh subscription status
+          if (productId?.includes('premium')) {
+            await checkSubscription();
+          }
+
           // Show success message based on product type
           if (productId?.includes('credit')) {
             const credits = productId.includes('single') ? 1 : 5;
@@ -81,6 +86,11 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
 
         appleIAP.onPurchaseComplete(async (productId: string) => {
           await refreshProfile(user.id);
+
+          // If it's a subscription, also refresh subscription status
+          if (productId?.includes('premium')) {
+            await checkSubscription();
+          }
         });
 
         return () => {

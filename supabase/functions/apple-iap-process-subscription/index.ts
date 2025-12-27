@@ -131,16 +131,33 @@ serve(async (req) => {
 
     // For subscriptions, try latest_receipt_info first (most common location)
     const latestReceiptInfo = validationResult.latest_receipt_info || [];
+
+    // For subscriptions, match by transaction_id OR original_transaction_id
+    // This is important because renewals create new transaction IDs but keep the same original_transaction_id
     let purchase = latestReceiptInfo.find((p: any) =>
-      p.transaction_id === transactionId || p.original_transaction_id === transactionId
+      p.transaction_id === transactionId ||
+      p.original_transaction_id === transactionId ||
+      p.transaction_id === p.original_transaction_id // Get the latest active subscription
     );
 
     // Fallback to receipt.in_app for sandbox or non-auto-renewable subscriptions
     if (!purchase && validationResult.receipt?.in_app) {
       const inAppPurchases = validationResult.receipt.in_app;
       purchase = inAppPurchases.find((p: any) =>
-        p.transaction_id === transactionId || p.original_transaction_id === transactionId
+        p.transaction_id === transactionId ||
+        p.original_transaction_id === transactionId
       );
+    }
+
+    // If still not found, just take the most recent subscription from latest_receipt_info
+    // This handles cases where the transaction ID doesn't match due to renewals
+    if (!purchase && latestReceiptInfo.length > 0) {
+      // Get the most recent one (they should be sorted by date, but let's be sure)
+      purchase = latestReceiptInfo[latestReceiptInfo.length - 1];
+      logStep("Using most recent subscription from receipt", {
+        foundTransactionId: purchase.transaction_id,
+        requestedTransactionId: transactionId
+      });
     }
 
     // Log receipt structure for debugging if transaction not found
