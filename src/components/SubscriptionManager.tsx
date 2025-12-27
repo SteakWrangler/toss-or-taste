@@ -275,6 +275,18 @@ const SubscriptionManager: React.FC<SubscriptionManagerProps> = ({ onPurchaseCom
               Manage Subscription
             </Button>
           )}
+
+          {isSubscribed && shouldUseApplePayments() && (
+            <div className="text-sm text-muted-foreground">
+              To manage or cancel your subscription, go to Settings → [Your Name] → Subscriptions on your device.
+            </div>
+          )}
+
+          {isSubscribed && shouldUseGooglePayments() && (
+            <div className="text-sm text-muted-foreground">
+              To manage or cancel your subscription, open the Google Play Store app → Menu → Subscriptions.
+            </div>
+          )}
         </CardContent>
       </Card>
 
