@@ -217,7 +217,7 @@ serve(async (req) => {
       throw new Error(`Product ID mismatch: expected ${productId}, got ${purchase.product_id}`);
     }
 
-    const subscriptionType = productId.includes('monthly') ? 'monthly' : 'annual';
+    const subscriptionType = productId.includes('monthly') ? 'monthly' : 'yearly';
     const expiresDate = purchase.expires_date_ms
       ? new Date(parseInt(purchase.expires_date_ms))
       : null;
