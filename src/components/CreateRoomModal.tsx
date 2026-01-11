@@ -183,9 +183,12 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
   };
 
   const handleAddressInput = async (address: string) => {
+    // Skip validation if the field is empty
+    if (!address.trim()) return;
+
     // Check if it's coordinates
     const coordMatch = address.match(/^(-?\d+\.?\d*),\s*(-?\d+\.?\d*)$/);
-    
+
     if (coordMatch) {
       // It's coordinates, try to get formatted address using OpenCage
       try {
@@ -449,7 +452,6 @@ const CreateRoomModal: React.FC<CreateRoomModalProps> = ({
                       placeholder="e.g., San Francisco, CA or 94102"
                       className="mt-1 text-sm sm:text-base"
                       disabled={isLoading}
-                      autoFocus
                     />
                   </div>
 
